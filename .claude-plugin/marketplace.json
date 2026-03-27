@@ -1,0 +1,13 @@
+{
+  "name": "donna",
+  "owner": {
+    "name": "Oliver Haas"
+  },
+  "plugins": [
+    {
+      "name": "donna",
+      "source": "./",
+      "description": "Personal Claude Code plugin — skills, agents, and hooks for the full stack"
+    }
+  ]
+}
