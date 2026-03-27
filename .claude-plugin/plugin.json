@@ -1,0 +1,23 @@
+{
+  "name": "donna",
+  "version": "0.1.0",
+  "description": "Personal Claude Code plugin — skills, agents, and hooks for the full stack",
+  "author": {
+    "name": "Oliver Haas"
+  },
+  "repository": "https://github.com/oliverhaas/claude-donna",
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "plugin",
+    "voice",
+    "todo",
+    "worktree",
+    "parallel",
+    "django",
+    "python"
+  ],
+  "skills": "./skills/",
+  "agents": "./agents/",
+  "hooks": "./hooks/hooks.json"
+}
