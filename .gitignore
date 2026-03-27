@@ -59,6 +59,9 @@ pyrightconfig.json
 # Node
 node_modules/
 
+# Donna runtime data
+.donna/
+
 # OS
 .DS_Store
 Thumbs.db
