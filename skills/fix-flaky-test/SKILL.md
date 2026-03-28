@@ -1,5 +1,5 @@
 ---
-name: tests-fix-flaky
+name: fix-flaky-test
 description: Investigate and fix a flaky test to make it reliable.
 disable-model-invocation: true
 ---
