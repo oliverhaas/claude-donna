@@ -30,6 +30,8 @@ cd {package-name}
 
 If the repo already exists, just clone it. If we're already in the right directory, skip this.
 
+The default branch must be `main` (not `master`). If `gh repo create` initializes with `master`, rename it: `git branch -M main`.
+
 ## Step 3: Create Directory Structure
 
 ```
