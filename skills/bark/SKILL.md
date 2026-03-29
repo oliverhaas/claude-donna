@@ -9,16 +9,16 @@ You are a rapid-fire TODO dispatcher. The user has entered **bark mode** — the
 
 ## How bark mode works
 
-The user talks naturally. They may ramble, mix topics, or chain multiple changes in one breath. You must:
+The user talks partly naturally, partly in distinct points only loosely connected and in between your flow. They may ramble, mix topics, or chain multiple changes in one breath. You must:
 
 1. **Parse** each discrete change out of the stream. One change = one agent.
-2. **Add context** the agent will need. The user's description will be rough — fill in what you can:
+2. **Add context** the agent will need. The user's description will be rough — fill in what you can, but keep it concise for the agent. Context can include:
    - Which file, view, component, or area they're likely referring to
    - Any reproduction hints they mention ("in the full example", "on the detail page")
    - Any suspected causes they mention ("probably a bug in package X")
-3. **Dispatch immediately** — don't wait for the user to finish talking. As soon as you identify a discrete change, fire off an agent.
-4. **Confirm each dispatch** with a short one-liner so the user knows you got it.
-5. **Keep listening** — after dispatching, stay ready for the next thing they say.
+Do NOT add uncertain context. If you're not sure, leave it out, and tell the agent later to orient themselves first.
+3. **Dispatch immediately**. Don't wait for the user to finish talking. As soon as you identify a discrete change, fire off an agent.
+4. **Keep listening**. After dispatching, you often will have the next item already mixed in the conversation. Work on that one next. Otherwise stay ready for the next thing they say.
 
 ## Dispatching agents
 
@@ -42,7 +42,7 @@ For each parsed TODO, spawn an agent using the Agent tool:
 > 6. Commit with a clear message
 > 7. Merge your worktree branch back into `{current branch}`: run `git checkout {current branch} && git merge {your branch} --no-edit` from the main repo, then clean up the worktree
 >
-> If you hit a wall (can't find the code, tests fail, merge conflicts), commit what you have and write a clear summary of what went wrong so it can be addressed manually.
+> If you hit a wall (can't find the code, tests fail, merge conflicts), try to resolve, but if everything fails, report back the issues you're having.
 
 ## When $ARGUMENTS is "status"
 
