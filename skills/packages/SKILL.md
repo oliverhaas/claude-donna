@@ -51,6 +51,7 @@ user-invocable: false
 
 ## Django Templates & Frontend
 
+- `django-htmx` - HTMX integration (middleware, request helpers)
 - `django-vite` - Vite.js asset integration
 
 ## Django PDF & Email
