@@ -113,8 +113,11 @@ for path in sorted(template_dir.rglob("*.html")):
 
 **Step 3: Verify automated changes**
 
+Review the diff, confirm every change looks correct, then commit before moving on.
+
 ```bash
 git diff <template-dir>
+git add <template-dir> && git commit -m "chore: automated DTL-to-Jinja2 bulk conversion"
 ```
 
 Search for remaining DTL patterns the script didn't catch:
@@ -177,6 +180,13 @@ for path in sorted(template_dir.rglob("*.html")):
 | `{% spaceless %}...{% endspaceless %}` | Remove; use `{%- -%}` trim markers |
 | `{% block nav-sidebar %}` | `{% block nav_sidebar %}` |
 
+After converting all manual patterns, review and commit:
+
+```bash
+git diff <template-dir>
+git add <template-dir> && git commit -m "chore: manual DTL-to-Jinja2 conversions"
+```
+
 ### Phase 3: Method Auto-Call Audit
 
 **This is where silent bugs hide.** DTL auto-calls methods; Jinja2 does not. `{{ obj.method }}` in DTL calls `method()`, but in Jinja2 it renders `<bound method ...>`.
@@ -215,6 +225,13 @@ print(f"label_tag: callable={callable(attr)}, type={type(attr)}")
 
 Common Django methods that need `()` -- see @conversion-reference.md for the full list.
 
+After adding all necessary `()` calls, review and commit:
+
+```bash
+git diff <template-dir>
+git add <template-dir> && git commit -m "chore: add method call parens for Jinja2 auto-call"
+```
+
 ### Phase 4: Safety and Escaping Audit
 
 Check for double-escaping issues. These need fixes in **Python code**, not templates.
@@ -233,6 +250,13 @@ Check for double-escaping issues. These need fixes in **Python code**, not templ
 4. **Context-aware tags** -- DTL's `takes_context=True` becomes `@jinja2.pass_context`. Remember Jinja2's `Context` is immutable -- convert to `dict` first.
 
 See @conversion-reference.md for detailed fixes and code.
+
+After applying Python-side fixes, review and commit:
+
+```bash
+git diff
+git add -A && git commit -m "chore: fix mark_safe/escaping interop for Jinja2"
+```
 
 ### Phase 5: Verification
 
