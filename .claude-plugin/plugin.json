@@ -1,6 +1,6 @@
 {
   "name": "donna",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "Personal Claude Code plugin: skills, agents, and hooks for the full stack",
   "author": {
     "name": "Oliver Haas"
