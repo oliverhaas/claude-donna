@@ -1,13 +1,13 @@
 ---
 name: familiarize
-description: Use when starting work on a project or package to understand current state. Checks git state, branches, PRs, issues, plans, and merge readiness. Read-only orientation -- takes no action.
+description: Use when starting work on a project or package to understand current state. Checks git state, branches, PRs, issues, plans, and merge readiness. Read-only orientation, takes no action.
 user-invocable: true
 argument-hint: "[repository-path]"
 ---
 
 # Familiarize
 
-Read-only orientation skill. Gathers context from git, GitHub, and project files to produce a situation report with suggested next steps. Takes no action -- only reports.
+Read-only orientation skill. Gathers context from git, GitHub, and project files to produce a situation report with suggested next steps. Takes no action, only reports.
 
 ## Process
 
@@ -48,7 +48,7 @@ git merge-tree $(git merge-base HEAD origin/main) HEAD origin/main | head -50
 
 If `git merge-tree` shows conflict markers, note which files conflict.
 
-Also check rebase freshness -- if the branch is more than ~20 commits behind main, flag it as a rebase candidate.
+Also check rebase freshness. If the branch is more than ~20 commits behind main, flag it as a rebase candidate.
 
 ```bash
 # Check for a PR on this branch
@@ -67,7 +67,7 @@ If a PR exists, note:
 git log --oneline origin/main -10
 ```
 
-Summarize what landed recently -- helps understand the current pace and focus area.
+Summarize what landed recently. Helps understand the current pace and focus area.
 
 ### 4. Open PRs
 
@@ -142,7 +142,7 @@ Other: <count>
 Unlabeled: <count>
 
 ### Active Plans
-- <path> -- <summary>
+- <path>: <summary>
 - or: no plans found
 
 ### Suggested Next Steps
@@ -153,14 +153,14 @@ Unlabeled: <count>
 
 Use judgment based on what you found. Common patterns:
 
-- **Dirty working tree** -- suggest committing, stashing, or cleaning up
-- **Feature branch with passing PR and approvals** -- suggest merging
-- **Feature branch with failing CI** -- suggest fixing CI failures
-- **Feature branch with merge conflicts** -- suggest rebasing onto main
-- **Feature branch far behind main** -- suggest rebasing
-- **Feature branch with no PR** -- suggest creating a PR
-- **Active plan with incomplete steps** -- suggest continuing the plan
-- **Open bugs with no assignee** -- suggest picking one up
-- **Open PRs needing review** -- suggest reviewing them
-- **Unlabeled issues** -- suggest triaging
-- **On main, clean tree, no active plan** -- suggest picking an open issue or starting new work
+- **Dirty working tree**: suggest committing, stashing, or cleaning up
+- **Feature branch with passing PR and approvals**: suggest merging
+- **Feature branch with failing CI**: suggest fixing CI failures
+- **Feature branch with merge conflicts**: suggest rebasing onto main
+- **Feature branch far behind main**: suggest rebasing
+- **Feature branch with no PR**: suggest creating a PR
+- **Active plan with incomplete steps**: suggest continuing the plan
+- **Open bugs with no assignee**: suggest picking one up
+- **Open PRs needing review**: suggest reviewing them
+- **Unlabeled issues**: suggest triaging
+- **On main, clean tree, no active plan**: suggest picking an open issue or starting new work

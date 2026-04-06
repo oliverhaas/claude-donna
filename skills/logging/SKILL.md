@@ -20,13 +20,13 @@ For Django projects, use Better Stack (betterstack.com) for log aggregation and 
 
 ## Formatting
 
-Use `%` formatting in log calls, not f-strings. This enables lazy evaluation -- the string is only formatted if the log level is active:
+Use `%` formatting in log calls, not f-strings. This enables lazy evaluation (the string is only formatted if the log level is active):
 
 ```python
 # Good
 logger.info("Order %s processed for user %s", order_id, user_id)
 
-# Bad -- always evaluates the f-string
+# Bad: always evaluates the f-string
 logger.info(f"Order {order_id} processed for user {user_id}")
 ```
 

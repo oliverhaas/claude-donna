@@ -10,10 +10,10 @@ Prefer fewer container types to keep the codebase consistent and boilerplate low
 
 ## Priority order
 
-1. **Django Models** -- The main container. Persistent data lives here. Pass model instances directly. Used literally everywhere to keep boilerplate low.
-2. **Pydantic Models** -- Usually API layer only, but there extensively. Use heavy validation and not just plain field definitions.
-3. **Primitives** -- What services try to use to stay general. `str`, `int`, `Decimal`, `datetime`, `list`, `tuple`. Most reusable, no coupling.
-4. **Dict and TypedDict** -- Dicts are unavoidable, and TypedDict adds safety. No runtime overhead, easily serializable. Use TypedDict over bare `dict` regularly.
+1. **Django Models**: The main container. Persistent data lives here. Pass model instances directly. Used literally everywhere to keep boilerplate low.
+2. **Pydantic Models**: Usually API layer only, but there extensively. Use heavy validation and not just plain field definitions.
+3. **Primitives**: What services try to use to stay general. `str`, `int`, `Decimal`, `datetime`, `list`, `tuple`. Most reusable, no coupling.
+4. **Dict and TypedDict**: Dicts are unavoidable, and TypedDict adds safety. No runtime overhead, easily serializable. Use TypedDict over bare `dict` regularly.
 
 ## Try to avoid
 

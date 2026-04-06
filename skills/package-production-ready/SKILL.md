@@ -27,9 +27,9 @@ Two phases: **audit** then **fix**.
 
 Determine the package directory from `$ARGUMENTS` or the current working directory. Identify:
 
-- **Package name** -- the pip-installable name (from `pyproject.toml` `[project] name`)
-- **Module name** -- the importable name (from `[tool.hatch.build.targets.wheel] packages` or derived from package name)
-- **Type checker** -- `mypy` or `ty` (from pyproject.toml config and pre-commit config)
+- **Package name**: the pip-installable name (from `pyproject.toml` `[project] name`)
+- **Module name**: the importable name (from `[tool.hatch.build.targets.wheel] packages` or derived from package name)
+- **Type checker**: `mypy` or `ty` (from pyproject.toml config and pre-commit config)
 
 ---
 
@@ -68,7 +68,7 @@ uv run pytest
 
 ### 3. Code Review
 
-Review ALL source files in the package -- not just a diff, the entire codebase. Use the review skill as a reference for what to check, but adapt it for full-package review rather than diff review.
+Review ALL source files in the package, not just a diff. Review the entire codebase. Use the review skill as a reference for what to check, but adapt it for full-package review rather than diff review.
 
 Read every source file and check for:
 
@@ -147,7 +147,7 @@ Check that these all agree where applicable:
 
 ### 10. Git History
 
-Review the commit log for issues. **Do not rewrite history -- only report findings.**
+Review the commit log for issues. **Do not rewrite history. Only report findings.**
 
 ```bash
 git log --oneline --all -50

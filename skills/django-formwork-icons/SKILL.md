@@ -45,7 +45,7 @@ The callback receives a model instance and must return a `mark_safe()` string.
 
 ## How Icons Render
 
-Icons are injected into dropdown templates via Alpine.js `x-html` binding, which renders raw HTML. This is why `mark_safe()` is required -- without it, the HTML is escaped to text.
+Icons are injected into dropdown templates via Alpine.js `x-html` binding, which renders raw HTML. This is why `mark_safe()` is required: without it, the HTML is escaped to text.
 
 ## Guidelines
 

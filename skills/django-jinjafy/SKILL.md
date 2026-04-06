@@ -9,7 +9,7 @@ argument-hint: "[template-directory or file]"
 
 Convert Django Template Language (DTL) templates to Jinja2. Handles tag syntax, filter mapping, template inheritance, and the subtle gotchas that cause silent bugs (double-escaping, method auto-calls, context scoping).
 
-Scope: **project templates** -- your own app templates. Not Django's built-in admin templates (that's django-adminx).
+Scope: **project templates** only. Your own app templates, not Django's built-in admin templates (that's django-adminx).
 
 ## Workflow
 
@@ -223,7 +223,7 @@ attr = getattr(BoundField, "label_tag")
 print(f"label_tag: callable={callable(attr)}, type={type(attr)}")
 ```
 
-Common Django methods that need `()` -- see @conversion-reference.md for the full list.
+Common Django methods that need `()`: see @conversion-reference.md for the full list.
 
 After adding all necessary `()` calls, review and commit:
 
@@ -236,18 +236,18 @@ git add <template-dir> && git commit -m "chore: add method call parens for Jinja
 
 Check for double-escaping issues. These need fixes in **Python code**, not templates.
 
-1. **`mark_safe()` interop** -- Django's `SafeString` lacks `__html__()` that Jinja2 checks. Patch once in your Jinja2 environment setup:
+1. **`mark_safe()` interop**: Django's `SafeString` lacks `__html__()` that Jinja2 checks. Patch once in your Jinja2 environment setup:
    ```python
    from django.utils.safestring import SafeData
    if not hasattr(SafeData, "__html__"):
        SafeData.__html__ = str
    ```
 
-2. **Filters that strip safety** -- `capfirst()` and similar return plain `str` even for `SafeString` input. Wrap to preserve Markup status.
+2. **Filters that strip safety**: `capfirst()` and similar return plain `str` even for `SafeString` input. Wrap to preserve Markup status.
 
-3. **Functions returning rendered HTML** -- functions using `get_template().render()` return plain `str`. Wrap to return `Markup`.
+3. **Functions returning rendered HTML**: functions using `get_template().render()` return plain `str`. Wrap to return `Markup`.
 
-4. **Context-aware tags** -- DTL's `takes_context=True` becomes `@jinja2.pass_context`. Remember Jinja2's `Context` is immutable -- convert to `dict` first.
+4. **Context-aware tags**: DTL's `takes_context=True` becomes `@jinja2.pass_context`. Remember Jinja2's `Context` is immutable; convert to `dict` first.
 
 See @conversion-reference.md for detailed fixes and code.
 

@@ -51,10 +51,10 @@ git push --set-upstream origin <branch>
 gh pr create --draft --title "Draft: <type>: descriptive title" --body ""
 ```
 
-**PR description must be super short -- one sentence max.** No long descriptions, bullet lists, or summaries.
+**PR description must be super short, one sentence max.** No long descriptions, bullet lists, or summaries.
 
 ## Step 5: Update Ticket (if applicable)
-If there is a ticket associated with this work, check its description. If it has **no description or very little** (e.g., just a link to an error log):
+If there is a ticket associated with this work, check its description. If it has no description or very little (e.g., just a link to an error log):
 - Add 2-3 concise sentences explaining the problem and the attempted fix.
 - Write from the current point in time.
 
@@ -65,7 +65,7 @@ Wait 10 minutes, then check if the CI checks passed:
 sleep 600 && gh pr checks
 ```
 
-If CI failed: check the output, fix issues, commit, push, and wait for CI again. If the user interrupts before the check, that's fine -- skip this step.
+If CI failed: check the output, fix issues, commit, push, and wait for CI again. If the user interrupts before the check, that's fine. Skip this step.
 
 
 ---

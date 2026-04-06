@@ -74,7 +74,7 @@ Usage: `Order.objects.active().overdue().with_totals()`
 1. Call `full_clean()` in `save()` to enforce model-level validation consistently
 2. State transitions (submit, cancel, approve) belong on the model as methods
 3. Computed properties use `@property` for single-instance, QuerySet annotations for bulk
-4. Custom QuerySet methods are chainable and composable -- prefer them over raw filters in views
+4. Custom QuerySet methods are chainable and composable. Prefer them over raw filters in views
 5. Keep model files focused. If a model file grows past ~300 lines, consider splitting logic or moving to services
 
 ---

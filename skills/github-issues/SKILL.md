@@ -19,8 +19,8 @@ gh issue create --title "Add export feature" --label enhancement
 
 Link issues in commit messages and PR descriptions:
 
-- `fixes #123` or `closes #123` -- auto-closes the issue when the PR merges
-- `refs #123` -- references without closing
+- `fixes #123` or `closes #123` auto-closes the issue when the PR merges
+- `refs #123` references without closing
 
 Use these in commit message bodies, not titles.
 
@@ -28,10 +28,10 @@ Use these in commit message bodies, not titles.
 
 Standard labels:
 
-- `bug` -- something is broken
-- `enhancement` -- new feature or improvement
-- `chore` -- maintenance, refactoring, dependencies
-- `documentation` -- docs-only changes
+- `bug`: something is broken
+- `enhancement`: new feature or improvement
+- `chore`: maintenance, refactoring, dependencies
+- `documentation`: docs-only changes
 
 ## CLI Quick Reference
 

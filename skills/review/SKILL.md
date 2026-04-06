@@ -100,8 +100,8 @@ When code is removed or refactored in the diff, check if it leaves behind unused
 - Look for orphaned helper functions, constants, or classes
 
 ### Categorizing Findings
-- **Request changes**: Issues that must be fixed (bugs, N+1 queries, security, failing tests)
-- **Suggestions**: Non-blocking improvements that can be addressed in follow-up work
+- **Request changes**: issues that must be fixed (bugs, N+1 queries, security, failing tests)
+- **Suggestions**: non-blocking improvements that can be addressed in follow-up work
 
 Present suggestions separately at the end of the review as "potential follow-ups".
 
@@ -110,5 +110,5 @@ Present suggestions separately at the end of the review as "potential follow-ups
 - Focus on the diff, not unchanged code
 - Each pass checks ONLY its specific area
 - Skip irrelevant passes
-- Don't check style -- ruff handles that
+- Don't check style; ruff handles that
 - Include file paths and line numbers in findings

@@ -8,7 +8,7 @@ Complete mapping of every Django Template Language construct to its Jinja2 equiv
 
 ```
 DTL:    {% load i18n static admin_list %}
-Jinja2: (removed -- extensions/globals are registered in the environment)
+Jinja2: (removed; extensions/globals are registered in the environment)
 ```
 
 ### Translation
@@ -108,7 +108,7 @@ Jinja2: {% if x %}...{% elif y %}...{% else %}...{% endif %}  (same)
 
 DTL:    {% with name=value %}...{% endwith %}
 Jinja2: {% set name = value %}
-        (no block scoping -- variable persists in current scope)
+        (no block scoping; variable persists in current scope)
 ```
 
 ### Loop Variables
@@ -210,7 +210,7 @@ Jinja2: {{ value|unlocalize }}  (custom filter)
 
 ## Inclusion Tags (Admin)
 
-The hardest conversion. Django admin uses `InclusionAdminNode` -- tags that call a Python function, get a dict, then render a sub-template with that dict as context.
+The hardest conversion. Django admin uses `InclusionAdminNode`: tags that call a Python function, get a dict, then render a sub-template with that dict as context.
 
 ### Pattern
 
@@ -304,7 +304,7 @@ Common offenders in Django admin:
 {{ form.errors.items }}        -> {{ form.errors.items() }}
 ```
 
-Properties do NOT need `()` -- only methods. The tricky part is knowing which is which. Django admin helper classes (`AdminField`, `AdminReadonlyField`, `Fieldline`, `InlineAdminForm`) use methods where you'd expect properties.
+Properties do NOT need `()`, only methods. The tricky part is knowing which is which. Django admin helper classes (`AdminField`, `AdminReadonlyField`, `Fieldline`, `InlineAdminForm`) use methods where you'd expect properties.
 
 ### 2. Django's mark_safe() Is Not Recognized by Jinja2
 
@@ -345,7 +345,7 @@ def admin_list_filter_safe(cl, spec):
 
 ### 5. Context-Aware Tags Need @jinja2.pass_context
 
-Django's `takes_context=True` tags become `@jinja2.pass_context`. Jinja2's `Context` object is immutable -- functions that mutate context crash with `TypeError`.
+Django's `takes_context=True` tags become `@jinja2.pass_context`. Jinja2's `Context` object is immutable, so functions that mutate context crash with `TypeError`.
 
 **Fix:** Always convert to `dict` first:
 
@@ -371,7 +371,7 @@ Jinja2 does NOT pass the `loop` variable from a `{% for %}` block into `{% inclu
 
 ### 7. Block Names Cannot Contain Hyphens
 
-DTL allows `{% block nav-sidebar %}`; Jinja2 does not -- block names must be valid Python identifiers.
+DTL allows `{% block nav-sidebar %}`; Jinja2 does not. Block names must be valid Python identifiers.
 
 **Fix:** Replace hyphens with underscores:
 

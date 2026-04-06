@@ -6,7 +6,7 @@ user-invocable: false
 
 # Data Migrations Review Guide
 
-Missing data migrations are a common source of production bugs -- code changes pass all tests (against clean data) but break on existing data.
+Missing data migrations are a common source of production bugs. Code changes pass all tests (against clean data) but break on existing data.
 
 ## When to Flag
 
@@ -23,7 +23,7 @@ Non-nullable fields/ForeignKeys added without a default.
 **Flag if**: No migration to clean existing data that would violate the constraint.
 
 ### 4. Changed Object Creation Timing
-Code changes *when* or *where* related objects are created -- records already past that point may lack the relationship.
+Code changes *when* or *where* related objects are created. Records already past that point may lack the relationship.
 **Flag if**: No migration to backfill missing related objects.
 
 ### 5. State Machine Modifications
@@ -38,12 +38,12 @@ Default value changes, new required conditions, or changed data formats.
 
 When the diff contains model/state/relationship changes, verify:
 
-1. **Existing values valid?** -- Do all current DB values still fit new choices/constraints?
-2. **Relationships intact?** -- Do existing records have all newly required relationships?
-3. **States consistent?** -- Can existing records still transition in the new state machine?
-4. **Assumptions hold?** -- Does existing data satisfy new business logic assumptions?
-5. **Validation tightened?** -- Are new validators, constraints, or stricter field options being added? Existing data must comply before or alongside the migration.
-6. **Migration present?** -- Is there a `RunPython` data migration for each concern above?
+1. **Existing values valid?** Do all current DB values still fit new choices/constraints?
+2. **Relationships intact?** Do existing records have all newly required relationships?
+3. **States consistent?** Can existing records still transition in the new state machine?
+4. **Assumptions hold?** Does existing data satisfy new business logic assumptions?
+5. **Validation tightened?** Are new validators, constraints, or stricter field options being added? Existing data must comply before or alongside the migration.
+6. **Migration present?** Is there a `RunPython` data migration for each concern above?
 
 ## What to Check in Data Migrations
 

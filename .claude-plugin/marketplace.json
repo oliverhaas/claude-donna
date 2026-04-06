@@ -7,7 +7,7 @@
     {
       "name": "donna",
       "source": "./",
-      "description": "Personal Claude Code plugin -- skills, agents, and hooks for the full stack"
+      "description": "Personal Claude Code plugin: skills, agents, and hooks for the full stack"
     }
   ]
 }

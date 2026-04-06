@@ -26,7 +26,7 @@ Always pass every read param into the template context so templates can preserve
 
 ## Preserving Params
 
-**Hidden form inputs** -- carry non-form state so it's included in the next request:
+**Hidden form inputs** carry non-form state so it's included in the next request:
 ```html
 <form hx-get="{% url 'products_list' %}" hx-replace-url="true">
     <input type="hidden" value="{{ status }}" name="status" />
@@ -34,13 +34,13 @@ Always pass every read param into the template context so templates can preserve
 </form>
 ```
 
-**`add_param` tag** (`templatetags/common.py`) -- set/override one param, preserve all others:
+**`add_param` tag** (`templatetags/common.py`) sets/overrides one param while preserving all others:
 ```html
 {% load common %}
 <a href="{% add_param request.get_full_path 'page' page_obj.next_page_number %}">Next</a>
 ```
 
-**In Python** -- use `build_url_with_params` (`utils/url_utils.py`) or `request.GET.dict().copy()` + `urlencode`.
+**In Python**, use `build_url_with_params` (`utils/url_utils.py`) or `request.GET.dict().copy()` + `urlencode`.
 
 ## HTMX
 

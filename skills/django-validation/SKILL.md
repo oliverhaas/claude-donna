@@ -8,11 +8,11 @@ user-invocable: false
 
 ## Decision Tree: Which Layer Validates What
 
-1. **Database constraints** (strongest guarantee) -- unique, check constraints, field types. Enforced even for raw SQL.
-2. **Django model fields + validators** -- field-level rules (length, format, range). Use `clean()` for cross-field validation and normalization.
-3. **Forms (UI path)** -- UI-specific rules. ModelForm calls `full_clean()` automatically.
-4. **Pydantic (API path)** -- request validation. Must match Django model constraints.
-5. **Service layer** -- orchestrates `full_clean()` + save + side effects. DB queries live here, not in validators.
+1. **Database constraints** (strongest guarantee): unique, check constraints, field types. Enforced even for raw SQL.
+2. **Django model fields + validators**: field-level rules (length, format, range). Use `clean()` for cross-field validation and normalization.
+3. **Forms (UI path)**: UI-specific rules. ModelForm calls `full_clean()` automatically.
+4. **Pydantic (API path)**: request validation. Must match Django model constraints.
+5. **Service layer**: orchestrates `full_clean()` + save + side effects. DB queries live here, not in validators.
 
 Validation flow:
 - API: Pydantic -> Service -> `full_clean()` -> save
@@ -70,7 +70,7 @@ class BaseModel(PydanticBaseModel):
     )
 ```
 
-Request models -- match Django field constraints:
+Request models must match Django field constraints:
 
 ```python
 class CreateProductRequest(BaseModel):
@@ -91,7 +91,7 @@ class CreateProductRequest(BaseModel):
         return self
 ```
 
-Endpoint pattern -- extract primitives, never pass Pydantic model to service:
+Endpoint pattern (extract primitives, never pass Pydantic model to service):
 
 ```python
 @router.post("/products/", response=ProductResponse)

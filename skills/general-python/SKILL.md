@@ -22,11 +22,11 @@ Use `str | None` not `Optional[str]`. Always type-hint parameters and return val
 Lambdas and closures inside loops capture variables by reference, not value.
 
 ```python
-# Wrong -- all callbacks use the last item
+# Wrong: all callbacks use the last item
 for item in items:
     transaction.on_commit(lambda: process(item.id))
 
-# Correct -- default arg captures current value
+# Correct: default arg captures current value
 for item in items:
     transaction.on_commit(lambda i=item: process(i.id))
 ```

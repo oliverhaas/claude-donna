@@ -51,19 +51,19 @@ Modifiers: `.prevent`, `.stop`, `.window`, `.document`, `.debounce-N`, `.throttl
 
 ## Watching & Effects
 
-**x-effect** -- eager, auto-tracks dependencies, runs immediately:
+**x-effect** is eager, auto-tracks dependencies, and runs immediately:
 ```html
 <span x-effect="doubled = count * 2"></span>
 ```
 
-**$watch** -- lazy, fires only on change, gives old/new values:
+**$watch** is lazy, fires only on change, and gives old/new values:
 ```javascript
 init() {
   this.$watch('search', (val, old) => this.fetchResults(val))
 }
 ```
 
-Do not modify watched data inside x-effect -- infinite loop.
+Do not modify watched data inside x-effect (infinite loop).
 
 ## DOM
 
@@ -108,7 +108,7 @@ $dispatch('item-added', { id: 123 })
 
 Alpine uses JavaScript Proxy for reactivity. Key rules:
 
-**Nested object changes -- reassign the parent:**
+**Nested object changes: reassign the parent:**
 ```javascript
 // Won't always trigger update
 this.user.name = 'Alice'
@@ -124,7 +124,7 @@ this.items.splice(0, 1)       // works
 this.items = this.items.filter(i => i.active)  // works
 ```
 
-**Non-reactive data** -- store outside x-data scope:
+**Non-reactive data**: store outside x-data scope:
 ```javascript
 const LOOKUP = Object.freeze(largeConfig)  // outside Alpine
 
@@ -135,8 +135,8 @@ Alpine.data('myComponent', () => ({
 
 ## Common Mistakes
 
-1. x-model only works with native inputs (input, select, textarea) -- not custom components
-2. $refs on x-for items -- use computed properties or $el instead
-3. x-effect that writes to its own dependencies -- causes infinite loop
-4. Forgetting `:key` on x-for -- causes stale DOM and binding issues
-5. Using x-data properties for cross-component state -- use Alpine.store instead
+1. x-model only works with native inputs (input, select, textarea), not custom components
+2. $refs on x-for items: use computed properties or $el instead
+3. x-effect that writes to its own dependencies causes infinite loops
+4. Forgetting `:key` on x-for causes stale DOM and binding issues
+5. Using x-data properties for cross-component state: use Alpine.store instead

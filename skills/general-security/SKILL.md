@@ -12,12 +12,12 @@ user-invocable: false
 - Never log secrets or include them in error messages or commits.
 - Use environment variables or a secrets manager for all credentials.
 
-## Sensitive Files -- Do Not Access
+## Sensitive Files: Do Not Access
 
-- `.env`, `.env.*` -- environment secrets
-- `*.pem`, `*.key`, `*.p12` -- private keys and certificates
-- `credentials.json`, `serviceAccount.json` -- credential files
-- `.ssh/` -- SSH keys and config
+- `.env`, `.env.*` (environment secrets)
+- `*.pem`, `*.key`, `*.p12` (private keys and certificates)
+- `credentials.json`, `serviceAccount.json` (credential files)
+- `.ssh/` (SSH keys and config)
 
 ## Code Safety
 

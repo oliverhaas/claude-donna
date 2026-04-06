@@ -55,14 +55,14 @@ def foo(entities: list[MyModel]) -> None:
 
 This project uses the `django-filthyfields` package (a fork of django-dirtyfields) for change tracking. Models that inherit from its mixin provide:
 
-- `is_dirty(check_relationship=False)` -- True if instance has unsaved changes
-- `was_dirty(check_relationship=False)` -- True after save if instance had changes before that save
-- `get_was_dirty_fields(check_relationship=False)` -- dict of fields that were dirty before save
+- `is_dirty(check_relationship=False)`: True if instance has unsaved changes
+- `was_dirty(check_relationship=False)`: True after save if instance had changes before that save
+- `get_was_dirty_fields(check_relationship=False)`: dict of fields that were dirty before save
 
 Pass `check_relationship=True` to include FK field changes (no extra queries).
 
 `BaseModelService` helpers for bulk operations:
-- `dirty_set_was_dirty(instances=...)` -- call in pre_save to snapshot dirty state
-- `dirty_filter_was_dirty(instances=...)` -- call in post_save to get only changed instances
+- `dirty_set_was_dirty(instances=...)`: call in pre_save to snapshot dirty state
+- `dirty_filter_was_dirty(instances=...)`: call in post_save to get only changed instances
 
 ---

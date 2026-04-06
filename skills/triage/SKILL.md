@@ -22,17 +22,17 @@ If no unlabeled issues are found, report that and stop.
 For each unlabeled issue, read the title and body. Apply one or more labels from this set:
 
 **Type labels (pick one):**
-- `bug` -- something is broken or producing incorrect results
-- `enhancement` -- new feature or improvement to existing functionality
-- `documentation` -- docs missing, incorrect, or need improvement
-- `question` -- user asking for help, not reporting a bug
+- `bug`: something is broken or producing incorrect results
+- `enhancement`: new feature or improvement to existing functionality
+- `documentation`: docs missing, incorrect, or need improvement
+- `question`: user asking for help, not reporting a bug
 
 **Effort labels (pick one if clear):**
-- `good-first-issue` -- small scope, well-defined, good for new contributors
+- `good-first-issue`: small scope, well-defined, good for new contributors
 
 **Priority labels (pick one):**
-- `priority:high` -- data loss, security issue, blocking workflow, or widespread breakage
-- `priority:low` -- cosmetic, minor inconvenience, or nice-to-have
+- `priority:high`: data loss, security issue, blocking workflow, or widespread breakage
+- `priority:low`: cosmetic, minor inconvenience, or nice-to-have
 
 Apply labels:
 ```bash
@@ -65,14 +65,14 @@ gh issue edit {NUMBER} --add-label "stale"
 ## Triage Summary
 
 ### Labeled
-- #12 "Login fails on mobile" -- bug, priority:high
-- #15 "Add dark mode" -- enhancement, priority:low
+- #12 "Login fails on mobile" (bug, priority:high)
+- #15 "Add dark mode" (enhancement, priority:low)
 
 ### Closed as Duplicate
-- #18 "Login broken on phone" -- duplicate of #12
+- #18 "Login broken on phone" (duplicate of #12)
 
 ### Marked Stale
-- #3 "Old feature idea" -- no activity since 2024-01-15
+- #3 "Old feature idea" (no activity since 2024-01-15)
 
 Total: X triaged, Y labeled, Z duplicates closed, W marked stale
 ```

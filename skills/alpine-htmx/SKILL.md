@@ -97,7 +97,7 @@ Don't swap the Alpine component itself when possible. Swap a child target instea
 </div>
 ```
 
-This avoids morph entirely -- x-model binding stays intact because the input is never swapped.
+This avoids morph entirely. The x-model binding stays intact because the input is never swapped.
 
 ## Re-initialization Without Morph
 
@@ -113,8 +113,8 @@ State is lost. Use only as fallback.
 
 ## Common Pitfalls
 
-1. **State lost after swap** -- Enable morph: `hx-ext="alpine-morph" hx-swap="morph"`. Server must return the full x-data element.
-2. **x-model unbinds** -- Either use morph, or don't swap the input's parent. Target a sibling container instead.
-3. **Event listeners gone** -- Without morph, all @click/@input handlers are lost on swap.
-4. **Debounce conflict** -- Don't debounce in both Alpine (x-model.debounce) and HTMX (hx-trigger delay). Pick one.
-5. **x-data scope reset** -- Each swap without morph creates a fresh scope. Use Alpine.store for state that must survive swaps.
+1. **State lost after swap**: Enable morph: `hx-ext="alpine-morph" hx-swap="morph"`. Server must return the full x-data element.
+2. **x-model unbinds**: Either use morph, or don't swap the input's parent. Target a sibling container instead.
+3. **Event listeners gone**: Without morph, all @click/@input handlers are lost on swap.
+4. **Debounce conflict**: Don't debounce in both Alpine (x-model.debounce) and HTMX (hx-trigger delay). Pick one.
+5. **x-data scope reset**: Each swap without morph creates a fresh scope. Use Alpine.store for state that must survive swaps.
