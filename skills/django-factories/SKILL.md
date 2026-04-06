@@ -13,14 +13,14 @@ Every required model field must have a corresponding factory entry. Handle optio
 # Required field
 name = factory.Faker("slug")
 
-# Optional field (null=True) — randomize presence
+# Optional field (null=True) -- randomize presence
 folder = factory.Maybe(
     factory.LazyFunction(lambda: random.random() > 0.5),
     yes_declaration=SubFactory(FolderFactory),
     no_declaration=None,
 )
 
-# File fields — use built-in django helpers
+# File fields -- use built-in django helpers
 image = factory.django.ImageField()
 ```
 
@@ -70,7 +70,7 @@ Pick from choice sets with `factory.Faker`:
 status = factory.Faker("random_element", elements=Media.StatusChoices)
 ```
 
-Be careful — other fields may depend on the randomly assigned value:
+Be careful -- other fields may depend on the randomly assigned value:
 
 ```python
 has_name = factory.Faker("boolean")

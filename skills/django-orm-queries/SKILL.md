@@ -28,18 +28,18 @@ Product.objects.filter(category=old).update(category=new)
 
 ## Basic Optimizations
 
-**Prevent N+1 queries — default to `prefetch_related()`:**
-- `prefetch_related('fk', 'reverse_fk', 'm2m')` — works for **all** relation types (separate queries)
-- `select_related('fk')` — ForeignKey/OneToOne only (SQL JOIN)
+**Prevent N+1 queries -- default to `prefetch_related()`:**
+- `prefetch_related('fk', 'reverse_fk', 'm2m')` -- works for **all** relation types (separate queries)
+- `select_related('fk')` -- ForeignKey/OneToOne only (SQL JOIN)
 
 **Why `prefetch_related()` is almost always preferred:**
-1. **No duplicate objects**: `select_related()` creates separate Python objects per row, even when multiple rows reference the same FK target. `prefetch_related()` reuses the same object — memory-efficient and consistent.
+1. **No duplicate objects**: `select_related()` creates separate Python objects per row, even when multiple rows reference the same FK target. `prefetch_related()` reuses the same object -- memory-efficient and consistent.
 2. **Cacheable**: Separate queries can hit `django-cachalot` cache (e.g., `Country` table is cached, so `prefetch_related("country")` may be a cache hit instead of a DB query).
 3. **The extra roundtrip rarely matters**: One additional simple query is negligible compared to the safety and caching benefits.
 
 **When `select_related()` is fine:**
-- **Single-object queries** (`.get()`, `.first()`) — when saving one roundtrip actually matters
-- **Multi-object queries** — only when there is almost no or no duplication across rows AND the saved roundtrip matters AND the related table is not cached via cachalot
+- **Single-object queries** (`.get()`, `.first()`) -- when saving one roundtrip actually matters
+- **Multi-object queries** -- only when there is almost no or no duplication across rows AND the saved roundtrip matters AND the related table is not cached via cachalot
 
 **Minimize data transfer:**
 - `only('id', 'name')` to fetch specific fields
@@ -113,7 +113,7 @@ prefetch_related_objects(
 
 ### Use `values()` for Read-Only Data
 
-For large read-only datasets (exports, API responses, analytics), prefer `values()` over `only()`. Returns dicts instead of model instances—no instantiation overhead, lower memory, can be 10x+ faster.
+For large read-only datasets (exports, API responses, analytics), prefer `values()` over `only()`. Returns dicts instead of model instances--no instantiation overhead, lower memory, can be 10x+ faster.
 
 ```python
 from django.db.models import F
@@ -247,7 +247,7 @@ models.CheckConstraint(check=models.Q(quantity__gte=0), name="quantity_non_negat
 
 ## Summary
 
-- **Prevent N+1:** Default to `prefetch_related()` for all relation types — it avoids duplicate objects, enables cachalot cache hits, and the extra roundtrip rarely matters
+- **Prevent N+1:** Default to `prefetch_related()` for all relation types -- it avoids duplicate objects, enables cachalot cache hits, and the extra roundtrip rarely matters
 - **`select_related()` only when:** single-object queries where the roundtrip matters, or multi-object queries with near-zero duplication, no cachalot caching, and a meaningful roundtrip cost
 - **Fill missing prefetches:** `prefetch_related_objects()` only fetches what's not already loaded
 - **Bulk ops:** Be careful - they bypass post_save hooks or additional logic in `.save()`

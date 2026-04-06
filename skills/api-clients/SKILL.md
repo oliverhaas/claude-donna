@@ -27,7 +27,7 @@ Immutable, hashable dataclass used as the key for the multiton (same config = sa
 | `name` | `str` | `""` | Identifier when multiple clients share similar config but need separate connection pools |
 | `base_url` | `str` | `""` | Base URL prepended to all request paths |
 | `timeout` | `float` | `60.0` | Seconds for connect/read/write/pool (use `httpx.Timeout` on the request for per-phase control) |
-| `headers` | `tuple[tuple[str, str], ...]` | `()` | Default headers. Use tuple (hashable). Do not put per-request/per-thread values here — pass them to `client.get(url, headers={...})` to avoid mutating shared state |
+| `headers` | `tuple[tuple[str, str], ...]` | `()` | Default headers. Use tuple (hashable). Do not put per-request/per-thread values here -- pass them to `client.get(url, headers={...})` to avoid mutating shared state |
 | `verify_ssl` | `bool` | `True` | TLS verification |
 | `follow_redirects` | `bool` | `False` | Whether to follow HTTP 3xx |
 | `auth` | `tuple[str, str] \| None` | `None` | HTTP Basic auth; for tokens use `headers` |
@@ -42,9 +42,9 @@ Immutable, hashable dataclass used as the key for the multiton (same config = sa
 
 Returns a shared `httpx.Client` per `HttpClientConfig`. `get()` is thread-safe.
 
-- **`get(config) -> httpx.Client`** — Returns the shared client, creating if needed. Do not close manually; use `close_all()`.
-- **`build_client(config) -> httpx.Client`** — New client from config (no caching). Use for one-off or context-managed usage.
-- **`close_all() -> None`** — Closes all registered clients. Call in Celery `worker_process_init` (post-fork) and `worker_process_shutdown` / test teardown.
+- **`get(config) -> httpx.Client`** -- Returns the shared client, creating if needed. Do not close manually; use `close_all()`.
+- **`build_client(config) -> httpx.Client`** -- New client from config (no caching). Use for one-off or context-managed usage.
+- **`close_all() -> None`** -- Closes all registered clients. Call in Celery `worker_process_init` (post-fork) and `worker_process_shutdown` / test teardown.
 
 **Client reuse rules:**
 

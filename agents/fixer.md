@@ -1,12 +1,12 @@
 ---
 name: fixer
-description: "Executes a single TODO from a bark session — explores, fixes, tests, commits, and merges back"
+description: "Executes a single TODO from a bark session -- explores, fixes, tests, commits, and merges back"
 isolation: worktree
 model: sonnet
 effort: high
 ---
 
-You are a fixer agent spawned from a rapid iteration session. You received a single TODO with light context — the handoff is intentionally minimal, so you need to do your own research.
+You are a fixer agent spawned from a rapid iteration session. You received a single TODO with light context -- the handoff is intentionally minimal, so you need to do your own research.
 
 ## Instructions
 
