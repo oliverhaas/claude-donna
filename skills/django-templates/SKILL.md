@@ -1,6 +1,6 @@
 ---
 name: django-templates
-description: Django template patterns for inheritance, includes, custom tags/filters, fragment caching, context processors, and HTMX partials. Use when writing or reviewing Django templates or template infrastructure.
+description: Django template patterns for inheritance, includes, partials (Django 6.0), custom tags/filters, fragment caching, context processors, and HTMX partials. Use when writing or reviewing Django templates or template infrastructure.
 user-invocable: false
 ---
 
@@ -180,6 +180,82 @@ myapp/
 ```
 
 Always name the module after the app to avoid collisions. `{% load myapp_tags %}` in templates that use it.
+
+## Template Partials (Django 6.0)
+
+Django 6.0 introduced built-in template partials via `{% partialdef %}` and `{% partial %}` tags. Partials let you define a reusable named fragment inside a template and render it multiple times without a separate file.
+
+### Defining and rendering partials
+
+```html
+{% load partials %}
+
+{% partialdef product-card %}
+  <div class="card">
+    <h3>{{ product.name }}</h3>
+    <p>{{ product.price }}</p>
+  </div>
+{% endpartialdef %}
+
+{# Render the partial wherever needed in the same template #}
+{% partial product-card %}
+```
+
+Use the `inline` option to render the partial immediately at the definition point and still make it available for later `{% partial %}` calls:
+
+```html
+{% partialdef product-card inline %}
+  <div class="card">
+    <h3>{{ product.name }}</h3>
+    <p>{{ product.price }}</p>
+  </div>
+{% endpartialdef %}
+```
+
+The `inline` form is usually what you want: the partial renders in place on the full-page load, and HTMX re-renders it directly on subsequent requests.
+
+### Accessing partials via template loading
+
+Append `#partial_name` to the template path to render only that fragment. Works with `render()`, `get_template()`, and `{% include %}`:
+
+```python
+# views.py
+def product_list(request):
+    context = {"products": Product.objects.active()}
+    if request.htmx:
+        # Render only the fragment, not the full page
+        return render(request, "shop/product_list.html#product-list-fragment", context)
+    return render(request, "shop/product_list.html", context)
+```
+
+```html
+{# shop/product_list.html #}
+{% extends "base.html" %}
+{% load partials %}
+
+{% block content %}
+  {% partialdef product-list-fragment inline %}
+    <ul id="product-list">
+      {% for product in products %}
+        <li>{{ product.name }}</li>
+      {% endfor %}
+    </ul>
+  {% endpartialdef %}
+{% endblock %}
+```
+
+The `#partial_name` syntax also works with `{% include %}`:
+
+```html
+{% include "shop/product_list.html#product-list-fragment" %}
+```
+
+### When to use partials vs. include
+
+- **`{% partialdef %}`** — the fragment lives inside the full-page template; no separate file needed; ideal for HTMX targets co-located with their surrounding page context. Preferred in Django 6.0+.
+- **`{% include %}`** — the fragment is genuinely shared across multiple unrelated templates and belongs in its own file.
+
+**Migrating from `django-template-partials` (third-party):** Django 6.0's built-in partials are based on this package. A [migration guide](https://github.com/carltongibson/django-template-partials/blob/main/Migration.md) is available if you used it before upgrading.
 
 ## Template Fragment Caching
 
@@ -389,7 +465,44 @@ TEMPLATES[0]["OPTIONS"]["loaders"] = [
 
 HTMX requests typically need a fragment, not a full page. The cleanest approach is to check for `HX-Request` and render only the partial.
 
-### Pattern 1: Separate partial templates
+### Pattern 1: Django 6.0 partials (preferred)
+
+Use `{% partialdef %}` with the `#partial_name` template loading syntax. No separate files, no extra dependencies:
+
+```python
+# views.py
+def product_list(request):
+    context = {"products": Product.objects.active()}
+    if request.htmx:
+        return render(request, "shop/product_list.html#product-list-fragment", context)
+    return render(request, "shop/product_list.html", context)
+```
+
+```html
+{# shop/product_list.html #}
+{% extends "base.html" %}
+{% load partials %}
+
+{% block content %}
+  {% partialdef product-list-fragment inline %}
+    <ul id="product-list">
+      {% for product in products %}
+        <li>{{ product.name }}</li>
+      {% endfor %}
+    </ul>
+  {% endpartialdef %}
+{% endblock %}
+```
+
+The `inline` option renders the partial in place for the full-page response. The HTMX response renders only the fragment via `#product-list-fragment`. Single file, no duplication.
+
+> Requires `django-htmx` (adds `request.htmx`). Alternative: check `request.headers.get("HX-Request")`.
+
+See the [Template Partials (Django 6.0)](#template-partials-django-60) section above for the full partial syntax.
+
+### Pattern 2: Separate partial templates
+
+For fragments shared across multiple templates, a separate file is still the right choice:
 
 ```python
 # views.py
@@ -418,11 +531,9 @@ def product_list(request):
 
 The full page includes the partial via `{% include %}`. HTMX requests get the partial directly. No duplication.
 
-> Requires `django-htmx` (adds `request.htmx`). Alternative: check `request.headers.get("HX-Request")`.
+### Pattern 3: Block rendering with render_block
 
-### Pattern 2: Block rendering with render_block
-
-With `django-render-block`, render a named block from an existing template without a separate file:
+With `django-render-block`, render a named block from an existing template without a separate file. Predates Django 6.0 partials; prefer Pattern 1 for new code:
 
 ```python
 from render_block import render_block_to_string
@@ -450,7 +561,7 @@ def product_list(request):
 {% endblock %}
 ```
 
-Useful when you want a single template file. Adds a dependency; Pattern 1 (separate partials) has no extra dependencies.
+Adds a dependency; Pattern 1 (Django 6.0 partials) is now the preferred no-dependency alternative.
 
 ### HTMX out-of-band updates
 
