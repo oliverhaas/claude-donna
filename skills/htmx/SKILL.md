@@ -146,8 +146,8 @@ In 2.x, HTMX skipped 4xx and 5xx responses by default (swap did not happen). In 
 
 This means:
 
-- **You no longer need to return 422 for validation errors.** Return 400 or 422; the body will be swapped.
-- **500 errors will also be swapped.** Make sure error pages are safe to render inline.
+- You no longer need to return 422 for validation errors. Return 400 or 422; the body will be swapped.
+- 500 errors will also be swapped. Make sure error pages are safe to render inline.
 - `204` still suppresses the swap (useful for delete operations that fire `HX-Trigger`).
 
 ```python
@@ -186,7 +186,7 @@ htmx.config.responseHandling = [
 
 For innerHTML-only OOB or append/prepend patterns, use `<htmx-partial>` instead.
 
-## `<htmx-partial>` Tag (New in 4.0)
+## htmx-partial Tag (New in 4.0)
 
 A new template-based element for OOB partial content with full `hx-target`/`hx-swap` support:
 
