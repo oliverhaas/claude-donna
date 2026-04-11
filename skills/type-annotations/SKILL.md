@@ -32,10 +32,11 @@ def process(items: List[str]) -> Dict[str, int]: ...
 
 ## TYPE_CHECKING Imports
 
-Use `TYPE_CHECKING` to avoid circular imports and expensive runtime imports. The imported names are only available to type checkers, not at runtime, so use string literals (forward references) when needed.
+Use `TYPE_CHECKING` to avoid circular imports and expensive runtime imports. The imported names are only available to type checkers, not at runtime.
+
+In Python 3.14+, annotations are evaluated lazily by default (PEP 649/749) - forward references work without string quotes and without `from __future__ import annotations`:
 
 ```python
-from __future__ import annotations  # makes all annotations strings lazily - avoids forward ref quotes
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -47,9 +48,11 @@ def create_article(*, author: Author, user: User) -> Article:
     ...
 ```
 
-With `from __future__ import annotations` at the top of the file, all annotations become strings automatically - no need for quoted forward references. Drop the `from __future__ import annotations` line only when you need annotation values at runtime (e.g., Pydantic model fields, dataclass fields with `field()`).
+`TYPE_CHECKING` is still needed even in Python 3.14+ when the import would cause a circular import at runtime or when you want to avoid importing a heavy module at runtime. The deferred evaluation only helps with name resolution inside annotations - it does not execute the imports.
 
-**Without `from __future__ import annotations`**: quote the names from `TYPE_CHECKING` blocks:
+`from __future__ import annotations` is deprecated as of Python 3.14 (behavior is now the default) and will be removed once Python 3.13 reaches end-of-life in 2029. Don't add it to new files targeting Python 3.14+.
+
+**On Python 3.12–3.13**: quote names from `TYPE_CHECKING` blocks when you don't have `from __future__ import annotations`:
 
 ```python
 from typing import TYPE_CHECKING
@@ -64,6 +67,33 @@ def create_article() -> "Article":  # quoted because Article not imported at run
 
 ## TypeVar, ParamSpec, TypeVarTuple
 
+Prefer the Python 3.12+ `type` parameter syntax (PEP 695) for new code:
+
+```python
+# Generic function - new style (Python 3.12+)
+def first[T](items: list[T]) -> T:
+    return items[0]
+
+
+# Generic class - new style
+class Stack[T]:
+    def push(self, item: T) -> None: ...
+    def pop(self) -> T: ...
+
+
+# Decorator that preserves the wrapped function's signature - new style
+import functools
+from typing import Callable
+
+def retry[**P, T](func: Callable[P, T]) -> Callable[P, T]:
+    @functools.wraps(func)
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+        return func(*args, **kwargs)
+    return wrapper
+```
+
+Legacy style (still valid, use when targeting Python < 3.12):
+
 ```python
 from typing import TypeVar, ParamSpec, TypeVarTuple
 
@@ -72,23 +102,9 @@ T_co = TypeVar("T_co", covariant=True)  # for return types / read-only container
 T_contra = TypeVar("T_contra", contravariant=True)  # for write-only / callback inputs
 P = ParamSpec("P")  # captures *args and **kwargs for decorators
 Ts = TypeVarTuple("Ts")  # for variadic generics
-
-
-# Generic function
-def first(items: list[T]) -> T:
-    return items[0]
-
-
-# Decorator that preserves the wrapped function's signature
-from typing import Callable
-import functools
-
-def retry(func: Callable[P, T]) -> Callable[P, T]:
-    @functools.wraps(func)
-    def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-        return func(*args, **kwargs)
-    return wrapper
 ```
+
+Note: covariance/contravariance with PEP 695 syntax is inferred automatically by the type checker based on usage - no explicit markers needed. If you need to be explicit, use the legacy `TypeVar("T_co", covariant=True)` form.
 
 ## Protocols
 
@@ -120,17 +136,15 @@ def flush_and_close(resource: Closeable) -> None:
 flush_and_close(open("file.txt"))  # fine
 ```
 
-Protocols with generics:
+Protocols with generics (Python 3.12+ syntax - variance is inferred by the type checker):
 
 ```python
-from typing import Protocol, TypeVar
-
-T_co = TypeVar("T_co", covariant=True)
+from typing import Iterator, Protocol
 
 
-class Container(Protocol[T_co]):
+class Container[T](Protocol):
     def __contains__(self, item: object) -> bool: ...
-    def __iter__(self) -> Iterator[T_co]: ...
+    def __iter__(self) -> Iterator[T]: ...
 ```
 
 ## Overloads
@@ -234,16 +248,18 @@ class ClickHandler(Protocol):
 
 ### QuerySet and Manager
 
+Class base expressions (e.g. `QuerySet["Article"]`) are evaluated eagerly even in Python 3.14 - string quotes are still required there when the class is a forward reference. Method annotation forward references don't need quotes in Python 3.14+.
+
 ```python
 from django.db import models
 from django.db.models import QuerySet
 
 
-class ArticleQuerySet(QuerySet["Article"]):
-    def published(self) -> "ArticleQuerySet":
+class ArticleQuerySet(QuerySet["Article"]):  # base expr: quotes required
+    def published(self) -> ArticleQuerySet:  # annotation: no quotes needed (3.14+)
         return self.filter(status="published")
 
-    def by_author(self, author: "Author") -> "ArticleQuerySet":
+    def by_author(self, author: Author) -> ArticleQuerySet:  # annotation: no quotes needed (3.14+)
         return self.filter(author=author)
 
 
@@ -258,11 +274,11 @@ For custom managers:
 from django.db import models
 
 
-class ArticleManager(models.Manager["Article"]):
-    def get_queryset(self) -> QuerySet["Article"]:
+class ArticleManager(models.Manager["Article"]):  # base expr: quotes required
+    def get_queryset(self) -> QuerySet[Article]:  # annotation: no quotes needed (3.14+)
         return super().get_queryset().select_related("author")
 
-    def published(self) -> QuerySet["Article"]:
+    def published(self) -> QuerySet[Article]:  # annotation: no quotes needed (3.14+)
         return self.get_queryset().filter(status="published")
 
 
@@ -310,14 +326,14 @@ def article_detail(request: HttpRequest, pk: int) -> HttpResponse:
 
 ## mypy vs ty
 
-**mypy**: mature, widely used, slower, plugin ecosystem (django-stubs).
-**ty**: Astral's new type checker (faster, stricter), still maturing as of 2025.
+**mypy**: mature, widely used, slower, rich plugin ecosystem including django-stubs.
+**ty**: Astral's type checker (10-60x faster than mypy). Reached beta in December 2025; stable release planned 2026. Django support is ongoing - if you rely on django-stubs, stick with mypy until ty's Django support stabilises.
 
 ### mypy Configuration (pyproject.toml)
 
 ```toml
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.14"
 strict = true
 plugins = ["mypy_django_plugin.main"]
 
@@ -336,10 +352,10 @@ ignore_missing_imports = true
 
 ```toml
 [tool.ty]
-python-version = "3.12"
+python-version = "3.14"
 ```
 
-ty is more strict by default. Key behavioral difference: ty treats missing return paths as errors where mypy with `--strict` may not, and ty resolves overloads differently.
+ty is strict by default and does not support mypy-style plugins - Django support is built in directly rather than via django-stubs. Key behavioral difference: ty treats missing return paths as errors where mypy with `--strict` may not, and ty resolves overloads differently.
 
 ### Common mypy Flags to Know
 
@@ -356,23 +372,33 @@ reveal_type(x)  # mypy prints inferred type during check - remove before committ
 
 ## Common Pitfalls
 
-### Forward References Without `from __future__ import annotations`
+### Forward References in Annotations
+
+In Python 3.14+, annotations are deferred - forward references just work:
 
 ```python
-# Wrong: NameError at runtime
+# Python 3.14+: fine as-is, no quoting or future import needed
 class Node:
-    def next(self) -> Node: ...  # Node not defined yet
+    def next(self) -> Node: ...
+```
 
-# Correct option 1: quote it
+On Python 3.12-3.13, method annotations are still eagerly evaluated at class definition time, so `Node` isn't defined yet:
+
+```python
+# Python 3.12-3.13: NameError at runtime without one of these fixes
+
+# Option 1: quote it
 class Node:
     def next(self) -> "Node": ...
 
-# Correct option 2: add future import at top of file
+# Option 2: add future import (deprecated in 3.14, remove when upgrading)
 from __future__ import annotations
 
 class Node:
-    def next(self) -> Node: ...  # fine now
+    def next(self) -> Node: ...
 ```
+
+Note: class base expressions (e.g. `class Foo(Bar["Baz"])`) are evaluated eagerly in all Python versions, including 3.14. String quotes are still required there when `Baz` is a forward reference.
 
 ### Circular Imports
 
