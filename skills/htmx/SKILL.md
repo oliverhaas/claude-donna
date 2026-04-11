@@ -1,6 +1,6 @@
 ---
 name: htmx
-description: "HTMX 4.0 core attributes, swap strategies, triggers, OOB swaps, SSE, morph swaps, and Django partial view patterns. Targets htmx 4.0 (currently alpha, stable expected early 2027). Use when building hypermedia-driven pages with server-rendered HTML."
+description: HTMX 4.0 core attributes, swap strategies, triggers, OOB swaps, SSE, morph swaps, and Django partial view patterns. Targets htmx 4.0 (currently alpha, stable expected early 2027). Use when building hypermedia-driven pages with server-rendered HTML.
 user-invocable: false
 ---
 

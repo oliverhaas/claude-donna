@@ -1,6 +1,6 @@
 ---
 name: tailwind-css
-description: "Tailwind CSS v4 utility patterns, component composition, and Django integration. Targets Tailwind v4 (CSS-first config, @theme directive, no tailwind.config.js). Use when writing Tailwind styles, configuring themes, or integrating Tailwind v4 into a Django project."
+description: Tailwind CSS v4 utility patterns, component composition, and Django integration. Targets Tailwind v4 (CSS-first config, @theme directive, no tailwind.config.js). Use when writing Tailwind styles, configuring themes, or integrating Tailwind v4 into a Django project.
 user-invocable: false
 ---
 
