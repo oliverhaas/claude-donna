@@ -95,6 +95,7 @@ ${CLAUDE_PLUGIN_ROOT}/skills/django-asyncio/SKILL.md
 
 ### Pass 10: Testing
 ${CLAUDE_PLUGIN_ROOT}/skills/tests-general/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/tests-infrastructure/SKILL.md
 ${CLAUDE_PLUGIN_ROOT}/skills/django-factories/SKILL.md
 ${CLAUDE_PLUGIN_ROOT}/skills/tests-celery/SKILL.md
 ${CLAUDE_PLUGIN_ROOT}/skills/tests-view/SKILL.md
