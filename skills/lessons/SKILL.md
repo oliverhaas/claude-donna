@@ -1,7 +1,7 @@
 ---
 name: lessons
 description: Review this session and identify patterns that should be codified into project standards.
-disable-model-invocation: true
+user-invocable: true
 ---
 
 # Task: Reflect on Session and Capture Lessons Learned

@@ -1,7 +1,7 @@
 ---
 name: review
-description: Review the current branch changes using focused, sequential passes. Each pass checks only one specific area based on project instruction files.
-disable-model-invocation: true
+description: Review the current branch changes using focused, sequential passes. Each pass checks only one specific area based on plugin skill files.
+user-invocable: true
 ---
 
 # Task: Review
@@ -49,47 +49,58 @@ For each pass:
 5. **Skip** the pass if no relevant code was changed
 
 ### Pass 1: Python Fundamentals
-@.claude/skills/general-python/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/general-python/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/type-annotations/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/error-handling/SKILL.md
 
-### Pass 2: Django ORM
-@.claude/skills/django-orm-queries/SKILL.md
-@.claude/skills/django-modern-patterns/SKILL.md
+### Pass 2: Django ORM & Database
+${CLAUDE_PLUGIN_ROOT}/skills/django-orm-queries/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/django-modern-patterns/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/postgresql/SKILL.md
 
-### Pass 3: Models
-@.claude/skills/django-data-migrations/SKILL.md
-@.claude/skills/django-save-hooks/SKILL.md
+### Pass 3: Models & Migrations
+${CLAUDE_PLUGIN_ROOT}/skills/django-data-migrations/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/django-save-hooks/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/django-signals/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/zero-downtime-migrations/SKILL.md
 
 ### Pass 4: Services & Fat Models
-@.claude/skills/django-services/SKILL.md
-@.claude/skills/django-fat-models/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/django-services/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/django-fat-models/SKILL.md
 
-### Pass 5: Views & Templates
-@.claude/skills/django-views/SKILL.md
-@.claude/skills/django-formwork-icons/SKILL.md
+### Pass 5: Views, Templates & Middleware
+${CLAUDE_PLUGIN_ROOT}/skills/django-views/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/django-templates/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/django-middleware/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/django-formwork-icons/SKILL.md
 
 ### Pass 6: Validation & Data Containers
-@.claude/skills/django-validation/SKILL.md
-@.claude/skills/python-data-containers/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/django-validation/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/python-data-containers/SKILL.md
 
-### Pass 7: Celery Tasks
-@.claude/skills/celery-tasks/SKILL.md
+### Pass 7: Caching & Performance
+${CLAUDE_PLUGIN_ROOT}/skills/django-caching/SKILL.md
 
-### Pass 8: Testing
-@.claude/skills/tests-general/SKILL.md
-@.claude/skills/django-factories/SKILL.md
-@.claude/skills/tests-celery/SKILL.md
-@.claude/skills/tests-view/SKILL.md
-@.claude/skills/tests-playwright-e2e/SKILL.md
+### Pass 8: Celery Tasks & Async
+${CLAUDE_PLUGIN_ROOT}/skills/celery-tasks/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/django-asyncio/SKILL.md
 
-### Pass 9: Logging
-@.claude/skills/logging/SKILL.md
+### Pass 9: Testing
+${CLAUDE_PLUGIN_ROOT}/skills/tests-general/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/django-factories/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/tests-celery/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/tests-view/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/tests-playwright-e2e/SKILL.md
 
-### Pass 10: API Clients
-@.claude/skills/api-clients/SKILL.md
+### Pass 10: Logging & API Clients
+${CLAUDE_PLUGIN_ROOT}/skills/logging/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/api-clients/SKILL.md
 
-### Pass 11: Alpine.js
-@.claude/skills/alpine-js/SKILL.md
-@.claude/skills/alpine-htmx/SKILL.md
+### Pass 11: Frontend
+${CLAUDE_PLUGIN_ROOT}/skills/alpine-js/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/alpine-htmx/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/htmx/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/tailwind-css/SKILL.md
 
 ## Phase 3: Cross-Cutting Checks
 

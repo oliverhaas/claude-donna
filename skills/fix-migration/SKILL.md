@@ -1,7 +1,7 @@
 ---
 name: fix-migration
 description: Fix broken, conflicting, or problematic Django migrations.
-disable-model-invocation: true
+user-invocable: true
 ---
 
 # Fix Migration

@@ -1,7 +1,7 @@
 ---
 name: pr
 description: Complete pull request workflow: review changes, create branch, commit, push, and create PR.
-disable-model-invocation: true
+user-invocable: true
 ---
 
 Complete pull request workflow: review changes, create branch, commit, push, and create PR.

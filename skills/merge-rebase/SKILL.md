@@ -1,7 +1,7 @@
 ---
 name: merge-rebase
 description: Merge the latest origin/main into the current branch.
-disable-model-invocation: true
+user-invocable: true
 ---
 
 # Merge Rebase

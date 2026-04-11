@@ -1,7 +1,7 @@
 ---
 name: fix-nplusone
 description: Find and fix N+1 query problems in Django views, services, or tasks.
-disable-model-invocation: true
+user-invocable: true
 ---
 
 # Fix N+1 Queries

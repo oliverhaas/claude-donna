@@ -2,7 +2,6 @@
 name: triage
 description: Scan open GitHub issues with no labels, analyze them, and apply appropriate labels.
 user-invocable: true
-disable-model-invocation: true
 ---
 
 # GitHub Issues Triage
