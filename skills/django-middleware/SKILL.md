@@ -187,13 +187,15 @@ class HookEquivalentsMiddleware:
 
 ```python
 MIDDLEWARE = [
-    "django.middleware.security.SecurityMiddleware",       # 1st: HTTPS, HSTS, headers
-    "django.contrib.sessions.middleware.SessionMiddleware", # 2nd: session before auth
+    "django.middleware.security.SecurityMiddleware",         # 1st: HTTPS, HSTS, headers
+    "django.contrib.sessions.middleware.SessionMiddleware",  # 2nd: session before auth
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",  # needs session above it
+    "django.contrib.auth.middleware.AuthenticationMiddleware",   # needs session above it
+    "django.contrib.auth.middleware.LoginRequiredMiddleware",    # Django 4.1+; after auth
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django.middleware.csp.ContentSecurityPolicyMiddleware",     # Django 6.0+; near bottom
 ]
 ```
 
@@ -202,6 +204,8 @@ MIDDLEWARE = [
 - `SessionMiddleware` must come before `AuthenticationMiddleware` (auth reads from session).
 - `SecurityMiddleware` goes first — it handles redirects and security headers before anything else.
 - `CsrfViewMiddleware` before your views; `CsrfViewMiddleware` reads cookies set by session.
+- `LoginRequiredMiddleware` (Django 4.1+) goes after `AuthenticationMiddleware`; it redirects unauthenticated users globally unless a view opts out with `@login_not_required`.
+- `ContentSecurityPolicyMiddleware` (Django 6.0+) goes near the bottom; configure via `SECURE_CSP` / `SECURE_CSP_REPORT_ONLY` settings. Any middleware that reads `request.csp_nonce` must come after it.
 - Your custom middleware: place after `AuthenticationMiddleware` if it needs `request.user`; place before `SecurityMiddleware` only for very early short-circuits (unusual).
 - Whitenoise (static files) goes right after `SecurityMiddleware` so static files bypass auth.
 
@@ -406,12 +410,42 @@ class RequestLoggingMiddleware:
 
 See `logging` skill for structured logging conventions.
 
+## Built-in CSP Middleware (Django 6.0+)
+
+Django 6.0 ships `django.middleware.csp.ContentSecurityPolicyMiddleware`. Prefer it over third-party packages like `django-csp`.
+
+Enable by adding it to `MIDDLEWARE` (near the bottom) and configuring the policy via settings:
+
+```python
+# settings.py
+from django.utils.csp import CSP
+
+MIDDLEWARE = [
+    # ...
+    "django.middleware.csp.ContentSecurityPolicyMiddleware",
+]
+
+SECURE_CSP = {
+    "default-src": [CSP.SELF],
+    "script-src": [CSP.SELF, CSP.NONCE],  # CSP.NONCE activates per-request nonces
+    "img-src": [CSP.SELF, "https:"],
+}
+
+# Report-only mode (logs violations, does not block):
+SECURE_CSP_REPORT_ONLY = {
+    "default-src": [CSP.SELF],
+    "report-uri": ["/csp-report/"],
+}
+```
+
+Access the nonce in templates via `{{ request.csp_nonce }}` (or `{{ csp_nonce }}` with the `csp` context processor). The middleware replaces the sentinel value in the header at response time — no manual nonce injection needed.
+
 ## Summary
 
 - Use class-based middleware with `__init__` + `__call__`. No `MiddlewareMixin`.
 - For dual sync/async: set `async_capable`/`sync_capable`, call `markcoroutinefunction(self)` in `__init__`, dispatch via `__acall__`.
 - For per-request state: attach to `request` (preferred) or use `contextvars.ContextVar` (not `threading.local`).
 - `process_view` and `process_exception` work as class methods without `MiddlewareMixin`.
-- Middleware ordering matters: session before auth, security first.
+- Middleware ordering matters: session before auth, security first, CSP (`ContentSecurityPolicyMiddleware`) near the bottom (Django 6.0+).
 - Any sync middleware in an ASGI stack forces a thread hop for the whole request.
 - Test with `RequestFactory` / `AsyncRequestFactory` in isolation, not `Client`.
