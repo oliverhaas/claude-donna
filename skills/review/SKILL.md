@@ -6,7 +6,7 @@ user-invocable: true
 
 # Task: Review
 
-Review the current branch changes using focused, sequential passes. Each pass checks only one specific area based on project instruction files.
+Review the current branch changes using focused, sequential passes. Each pass checks only one specific area based on plugin skill files.
 
 ## Phase 1: Automated Quality Gates
 
@@ -52,6 +52,7 @@ For each pass:
 ${CLAUDE_PLUGIN_ROOT}/skills/general-python/SKILL.md
 ${CLAUDE_PLUGIN_ROOT}/skills/type-annotations/SKILL.md
 ${CLAUDE_PLUGIN_ROOT}/skills/error-handling/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/general-security/SKILL.md
 
 ### Pass 2: Django ORM & Database
 ${CLAUDE_PLUGIN_ROOT}/skills/django-orm-queries/SKILL.md
@@ -71,32 +72,40 @@ ${CLAUDE_PLUGIN_ROOT}/skills/django-fat-models/SKILL.md
 ### Pass 5: Views, Templates & Middleware
 ${CLAUDE_PLUGIN_ROOT}/skills/django-views/SKILL.md
 ${CLAUDE_PLUGIN_ROOT}/skills/django-templates/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/django-jinja2/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/django-jinjafy/SKILL.md
 ${CLAUDE_PLUGIN_ROOT}/skills/django-middleware/SKILL.md
 ${CLAUDE_PLUGIN_ROOT}/skills/django-formwork-icons/SKILL.md
 
-### Pass 6: Validation & Data Containers
+### Pass 6: Validation, Settings & Permissions
 ${CLAUDE_PLUGIN_ROOT}/skills/django-validation/SKILL.md
 ${CLAUDE_PLUGIN_ROOT}/skills/python-data-containers/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/django-settings/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/django-permissions/SKILL.md
 
-### Pass 7: Caching & Performance
+### Pass 7: Admin
+${CLAUDE_PLUGIN_ROOT}/skills/django-admin/SKILL.md
+
+### Pass 8: Caching & Performance
 ${CLAUDE_PLUGIN_ROOT}/skills/django-caching/SKILL.md
 
-### Pass 8: Celery Tasks & Async
+### Pass 9: Celery Tasks & Async
 ${CLAUDE_PLUGIN_ROOT}/skills/celery-tasks/SKILL.md
 ${CLAUDE_PLUGIN_ROOT}/skills/django-asyncio/SKILL.md
 
-### Pass 9: Testing
+### Pass 10: Testing
 ${CLAUDE_PLUGIN_ROOT}/skills/tests-general/SKILL.md
 ${CLAUDE_PLUGIN_ROOT}/skills/django-factories/SKILL.md
 ${CLAUDE_PLUGIN_ROOT}/skills/tests-celery/SKILL.md
 ${CLAUDE_PLUGIN_ROOT}/skills/tests-view/SKILL.md
 ${CLAUDE_PLUGIN_ROOT}/skills/tests-playwright-e2e/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/django-tdd/SKILL.md
 
-### Pass 10: Logging & API Clients
+### Pass 11: Logging & API Clients
 ${CLAUDE_PLUGIN_ROOT}/skills/logging/SKILL.md
 ${CLAUDE_PLUGIN_ROOT}/skills/api-clients/SKILL.md
 
-### Pass 11: Frontend
+### Pass 12: Frontend
 ${CLAUDE_PLUGIN_ROOT}/skills/alpine-js/SKILL.md
 ${CLAUDE_PLUGIN_ROOT}/skills/alpine-htmx/SKILL.md
 ${CLAUDE_PLUGIN_ROOT}/skills/htmx/SKILL.md
