@@ -275,6 +275,8 @@ user = await request.auser()
 
 Async dispatch with `asend()` and `asend_robust()`. Receivers are auto-adapted: sync receivers called via `asend()` get wrapped with `sync_to_async`, async receivers called via `send()` get wrapped with `async_to_sync`. Async receivers in `asend()` run concurrently via `asyncio.gather()`.
 
+**Receiver grouping (Django 6.0).** To reduce sync/async context switches, Django 6.0 groups receivers by type before dispatching — all sync receivers run together, then all async receivers (or vice versa). Async receivers execute concurrently within their group via `asyncio.gather()`. This means an async receiver registered *before* a sync receiver may still execute *after* it. Do not rely on registration order for signal receivers used with `asend()`.
+
 ```python
 from django.dispatch import Signal
 
@@ -293,7 +295,7 @@ await order_placed.asend(sender=OrderService, order_id=order.id)
 
 **Built-in Django signals (`post_save`, `pre_delete`, etc.) use `send()`, not `asend()`.** They are always dispatched synchronously. An async receiver connected to `post_save` will be wrapped in `async_to_sync` and block the calling thread. Keep ORM signal receivers sync, or dispatch your own signal with `asend()` from async code.
 
-**Exceptions in concurrent receivers.** `asend()` uses `asyncio.gather()` which by default cancels remaining coroutines on the first exception. Use `asend_robust()` instead to get a list of `(receiver, result_or_exception)` pairs without cancellation:
+**Exceptions in concurrent receivers.** `asend()` uses `asyncio.gather()` for the async receiver group, which by default raises on the first exception (potentially cancelling others in the group). Use `asend_robust()` instead to get a list of `(receiver, result_or_exception)` pairs without cancellation:
 
 ```python
 results = await order_placed.asend_robust(sender=OrderService, order_id=order.id)
@@ -320,6 +322,65 @@ async def product_list(request: HttpRequest) -> HttpResponse:
     has_prev = await page.ahas_previous()
     objects = await page.aget_object_list()
 ```
+
+## Django Tasks Framework (Django 6.0)
+
+Django 6.0 ships a built-in Tasks framework for running code outside the request-response cycle. For straightforward background work (emails, data processing, webhooks) it replaces many Celery use cases without requiring an external task queue package.
+
+**Define a task with `@task`:**
+
+```python
+from django.tasks import task
+
+@task
+def send_welcome_email(user_id: int) -> None:
+    user = User.objects.get(pk=user_id)
+    send_mail("Welcome", "Hello!", None, [user.email])
+```
+
+**Enqueue from sync or async code:**
+
+```python
+# sync context
+result = send_welcome_email.enqueue(user_id=user.pk)
+
+# async context
+result = await send_welcome_email.aenqueue(user_id=user.pk)
+```
+
+**Enqueue safely after a transaction commits:**
+
+```python
+from functools import partial
+from django.db import transaction
+
+with transaction.atomic():
+    user = User.objects.create(...)
+    transaction.on_commit(partial(send_welcome_email.enqueue, user_id=user.pk))
+```
+
+**Configuration** via `TASKS` setting. Two built-in backends for dev/testing:
+
+```python
+# ImmediateBackend — runs tasks inline (default)
+TASKS = {"default": {"BACKEND": "django.tasks.backends.immediate.ImmediateBackend"}}
+
+# DummyBackend — records tasks without running them (useful in tests)
+TASKS = {"default": {"BACKEND": "django.tasks.backends.dummy.DummyBackend"}}
+```
+
+Production setups require a third-party backend with actual worker processes (see [Django Packages task backends](https://djangopackages.org/grids/g/task-framework/)).
+
+**Constraints:**
+- Task arguments and return values must be JSON-serializable. Pass PKs, not model instances.
+- Django enqueues tasks; it does not run workers. External infrastructure is still required in production.
+
+**When to prefer Django Tasks over Celery:**
+- Straightforward fire-and-forget jobs with no complex retry logic, chaining, or ETA scheduling.
+- Projects that want fewer external dependencies.
+
+**When to keep Celery:**
+- Complex retry policies, chord/chain primitives, canvas workflows, beat scheduler, or existing Celery infrastructure. See the `celery-tasks` skill.
 
 ## Async Streaming
 
@@ -371,7 +432,7 @@ async def create_order_view(request: HttpRequest) -> JsonResponse:
     return JsonResponse({"id": order.pk})
 ```
 
-Async transaction support is under active development (DEP 0009).
+Async transaction support is not available in Django 6.0. The underlying database drivers are synchronous; true async transaction support remains a long-term goal (DEP 0009) with no release timeline.
 
 ### Deferred fields break in async
 
@@ -416,7 +477,7 @@ Async views add complexity. Only use them when the benefit is clear:
 
 **Keep views sync when:**
 - The view does only ORM queries. Async ORM is `sync_to_async` under the hood — there is no throughput gain over sync views on ASGI.
-- The view is CPU-bound (image processing, serialization, report generation). Async doesn't parallelize CPU work in Python; use Celery instead (see `celery-tasks` skill).
+- The view is CPU-bound (image processing, serialization, report generation). Async doesn't parallelize CPU work in Python; offload to background workers instead. Use Django's built-in Tasks framework (Django 6.0+) for simple cases or Celery for complex workflows (see `celery-tasks` skill).
 - The view is simple and the team is not yet familiar with async Django pitfalls. Sync views on ASGI work fine.
 
 A mixed stack is fine: sync and async views can coexist in the same project under ASGI.
@@ -513,6 +574,8 @@ Most Django packages are sync-only and safe to use from async views via `sync_to
 
 ## Async Celery Patterns
 
+Django 6.0 ships a built-in Tasks framework (see **Django Tasks Framework** section above) that covers simple background work without requiring Celery. Use Celery when you need complex retry logic, chaining/chord primitives, the beat scheduler, or existing Celery infrastructure.
+
 See the `celery-tasks` skill for full Celery guidelines. Async/Celery interaction points:
 
 **Dispatching tasks from async views.** `task.delay()` is synchronous but fast (network call to broker). It is safe to call from async code without `sync_to_async` for simple cases. If the broker call becomes a bottleneck, wrap it:
@@ -561,8 +624,6 @@ async with asyncio.timeout(5.0):
     result = await external_api_call()
 ```
 
-Pre-3.11 equivalent: `await asyncio.wait_for(external_api_call(), timeout=5.0)`.
-
 **Don't block the event loop.** Any synchronous blocking call (file I/O, `time.sleep`, CPU-heavy work) inside an async view blocks the entire event loop. Offload to a thread with `sync_to_async` or `asyncio.get_event_loop().run_in_executor()`:
 
 ```python
@@ -575,7 +636,7 @@ async def render_view(request: HttpRequest) -> HttpResponse:
     return HttpResponse(result)
 ```
 
-**`asyncio.create_task` in views.** Fire-and-forget tasks created with `asyncio.create_task()` are tied to the request's event loop run. If the response returns before the task finishes, the task may be cancelled. For reliable background work, use Celery tasks instead.
+**`asyncio.create_task` in views.** Fire-and-forget tasks created with `asyncio.create_task()` are tied to the request's event loop run. If the response returns before the task finishes, the task may be cancelled. For reliable background work, use Django's Tasks framework (`task.aenqueue()`) or Celery.
 
 ## ASGI Deployment
 
