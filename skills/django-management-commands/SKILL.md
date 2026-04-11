@@ -8,6 +8,8 @@ user-invocable: false
 
 Management commands are the right tool for one-off operations, scheduled jobs, data migrations run manually, and administrative tasks. They run in the full Django context, have access to the ORM, and can be invoked from cron, CI, or the shell.
 
+For work that needs to run **asynchronously outside the HTTP request-response cycle** (e.g. sending email triggered by a web request), use Django 6.0's built-in Tasks framework (`@task` + `.enqueue()`) rather than a management command. Management commands execute synchronously and block the caller — they are not a task queue. Use Tasks for background work enqueued from views; use management commands for scheduled or administrative jobs invoked from cron or CI.
+
 ## Basic Structure
 
 ```python
@@ -380,11 +382,17 @@ def test_sync_products_dry_run_makes_no_changes():
 
 @pytest.mark.django_db
 def test_sync_products_missing_tenant_raises():
-    with pytest.raises(SystemExit):
+    with pytest.raises(CommandError):
         call_command("sync_products", "--tenant-id", "99999")
 ```
 
-`CommandError` is re-raised as `SystemExit` when using `call_command`. Catch `SystemExit` (not `CommandError`) in tests.
+`call_command` calls `execute()` directly, bypassing the CLI runner. `CommandError` propagates as `CommandError`, not `SystemExit`. Catch `CommandError` in tests. (`SystemExit` only occurs when the command is run from the command line via `run_from_argv()`.)
+
+Add the import at the top of the test file:
+
+```python
+from django.core.management.base import CommandError
+```
 
 For checking stderr:
 
