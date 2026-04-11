@@ -1,39 +1,185 @@
 ---
 name: tailwind-css
-description: "Tailwind CSS utility patterns, component composition, and Django integration. Use when writing Tailwind styles, configuring themes, or integrating Tailwind into a Django project."
+description: "Tailwind CSS v4 utility patterns, component composition, and Django integration. Targets Tailwind v4 (CSS-first config, @theme directive, no tailwind.config.js). Use when writing Tailwind styles, configuring themes, or integrating Tailwind v4 into a Django project."
 user-invocable: false
 ---
 
-# Tailwind CSS Patterns
+# Tailwind CSS v4 Patterns
+
+Targets Tailwind CSS v4 (released January 2025, latest v4.2). The config-file era is over: everything lives in CSS via the `@theme` directive.
+
+## Installation
+
+```bash
+# Vite project (preferred)
+npm install -D tailwindcss @tailwindcss/vite
+
+# Standalone CLI
+npm install -D tailwindcss @tailwindcss/cli
+
+# PostCSS
+npm install -D tailwindcss @tailwindcss/postcss
+```
+
+Vite plugin (`vite.config.js`):
+
+```javascript
+import tailwindcss from '@tailwindcss/vite'
+
+export default {
+  plugins: [tailwindcss()],
+}
+```
+
+## CSS Entry Point
+
+Replace all `@tailwind` directives with a single import. There is no `tailwind.config.js`.
+
+```css
+/* main.css */
+@import "tailwindcss";
+
+/* Optional: explicit source paths (auto-detection covers most cases) */
+@source "../templates/**/*.html";
+@source "../myapp/**/*.py";
+
+/* All customization goes in @theme */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Satoshi", "sans-serif";
+
+  --color-brand-50:  oklch(0.97 0.02 240);
+  --color-brand-500: oklch(0.55 0.22 240);
+  --color-brand-900: oklch(0.25 0.12 240);
+
+  --breakpoint-xs: 480px;
+  --breakpoint-3xl: 1920px;
+
+  --spacing-18: 4.5rem;
+  --spacing-112: 28rem;
+}
+```
+
+Colors use oklch by default in v4 — more vivid on modern displays and easier to manipulate programmatically. All theme values are exposed as CSS custom properties at runtime.
+
+## Auto-Detection and @source
+
+Tailwind v4 scans for class names automatically, respecting `.gitignore`. You only need `@source` for:
+
+- Paths outside your project root
+- Files listed in `.gitignore` that you still want scanned
+- Python files where class names are built from full strings
+
+```css
+/* Only add @source when auto-detection misses something */
+@source "../vendor/my-lib/templates/**/*.html";
+```
+
+Do not build class names by concatenation — auto-detection requires full class names in source:
+
+```python
+# BAD: scanner cannot see 'text-red-500' or 'text-green-500'
+cls = f"text-{status}-500"
+
+# GOOD: full names visible to scanner
+cls = "text-red-500" if status == "error" else "text-green-500"
+```
+
+For truly dynamic classes from Python, use `@source` with `not-pattern` or add them to a safelist via CSS:
+
+```css
+@source inline("text-red-500 text-green-500 text-yellow-500 bg-red-100 bg-green-100");
+```
 
 ## Utility Composition
 
-Tailwind is verbose by design. Resist extracting utilities into custom classes prematurely. Use component templates or JS variables instead.
+Tailwind is verbose by design. Resist extracting utilities prematurely. Use component templates or JS variables to share markup.
 
-```html
-<!-- Good: utilities inline -->
-<button class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2">
-  Save
-</button>
-
-<!-- Only extract when reused many times across files -->
-```
-
-When extraction is warranted, use `@apply` sparingly and only in component CSS, not in `base` or `utilities` layers:
+When extraction is warranted, `@apply` still works in `@layer components`:
 
 ```css
-/* components.css */
 @layer components {
   .btn-primary {
-    @apply rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white;
-    @apply hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2;
+    @apply rounded-md bg-brand-500 px-4 py-2 text-sm font-medium text-white;
+    @apply hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2;
   }
 }
 ```
 
+Do not use `@apply` in `@layer base` or `@layer utilities` — this breaks the cascade. `@layer components` only.
+
+v4 uses native CSS cascade layers: `@layer theme, base, components, utilities`. Tailwind declares these automatically; you can insert your own layers at specific positions.
+
+## New Utility Features in v4
+
+**Dynamic values** — arbitrary steps work without configuration:
+
+```html
+<div class="grid-cols-15 mt-17 w-29 gap-13">
+```
+
+**Gradient rename** — `bg-gradient-*` is now `bg-linear-*`:
+
+```html
+<!-- v4 -->
+<div class="bg-linear-to-r from-brand-500 to-purple-600">
+<div class="bg-radial-[at_top_left] from-white to-brand-500">
+<div class="bg-conic from-blue-500 via-purple-500 to-blue-500">
+```
+
+**3D transforms**:
+
+```html
+<div class="transform-3d rotate-x-12 rotate-y-6 perspective-500">
+```
+
+**New shadow compositing**:
+
+```html
+<div class="shadow-lg inset-shadow-sm ring-1 inset-ring-brand-500/20">
+```
+
+**Auto-resize textarea**:
+
+```html
+<textarea class="field-sizing-content min-h-20 w-full resize-none">
+```
+
+**`not-*` variant** — negate pseudo-classes and media queries:
+
+```html
+<li class="not-last:border-b border-gray-200">
+<div class="not-dark:bg-white dark:bg-gray-900">
+```
+
+**`starting` variant** — `@starting-style` for enter animations:
+
+```html
+<dialog class="open:opacity-100 starting:open:opacity-0 transition-opacity">
+```
+
+**Logical property utilities** (v4.2):
+
+```html
+<!-- block-start / block-end / inline-start / inline-end -->
+<div class="pbs-4 pbe-6 mbs-2 mbe-4">
+```
+
+## Container Queries
+
+Built-in — no plugin needed:
+
+```html
+<div class="@container">
+  <div class="@sm:flex-row flex flex-col">
+  <div class="@max-md:hidden">  <!-- max-width container query -->
+  <div class="@[600px]:grid-cols-3">  <!-- arbitrary container size -->
+</div>
+```
+
 ## Responsive Design
 
-Tailwind is mobile-first. Unprefixed utilities apply at all sizes; prefixed ones apply at that breakpoint and above.
+Mobile-first. Unprefixed utilities apply at all sizes; prefixed ones at that breakpoint and above.
 
 ```html
 <!-- Stack on mobile, row on md+ -->
@@ -48,34 +194,34 @@ Tailwind is mobile-first. Unprefixed utilities apply at all sizes; prefixed ones
 
 Default breakpoints: `sm` 640px, `md` 768px, `lg` 1024px, `xl` 1280px, `2xl` 1536px.
 
-Custom breakpoints in `tailwind.config.js`:
+Custom breakpoints via `@theme` (not `tailwind.config.js`):
 
-```javascript
-theme: {
-  screens: {
-    'xs': '480px',
-    // extend defaults
-    ...require('tailwindcss/defaultTheme').screens,
-  }
+```css
+@theme {
+  --breakpoint-xs: 480px;
+  --breakpoint-3xl: 1920px;
+  /* Removing a default breakpoint: */
+  --breakpoint-2xl: initial;
 }
 ```
 
 ## Dark Mode
 
-Configure mode in `tailwind.config.js`:
+Dark mode works via the `dark:` variant. In v4, the strategy is configured in CSS:
 
-```javascript
-// Class-based (recommended for user-controlled toggle)
-darkMode: 'class',
+```css
+@import "tailwindcss";
 
-// Media query (follows OS preference)
-darkMode: 'media',
+/* Class-based dark mode (user-controlled toggle) */
+@variant dark (&:where(.dark, .dark *));
+
+/* Media-based dark mode (default if no @variant override) */
+/* @variant dark (@media (prefers-color-scheme: dark)); */
 ```
 
-**Class-based toggle**: add/remove `dark` class on `<html>` or a parent element.
+Toggle class-based dark mode:
 
 ```javascript
-// Toggle
 document.documentElement.classList.toggle('dark')
 
 // Persist preference
@@ -83,149 +229,100 @@ const isDark = localStorage.getItem('theme') === 'dark'
 document.documentElement.classList.toggle('dark', isDark)
 ```
 
+Usage in templates:
+
 ```html
-<!-- Usage in templates -->
 <div class="bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100">
   <p class="text-gray-600 dark:text-gray-400">Secondary text</p>
 </div>
 ```
 
-## Custom Theme Configuration
+Every element must declare its own `dark:` variant — there is no inheritance.
 
-```javascript
-// tailwind.config.js
-const defaultTheme = require('tailwindcss/defaultTheme')
+## DaisyUI v5 (Tailwind v4 compatible)
 
-module.exports = {
-  content: [
-    './templates/**/*.html',
-    './static/**/*.js',
-    // Include Python files if you build class names there
-    // './myapp/**/*.py',  -- only if safe (no dynamic class names)
-  ],
-  theme: {
-    extend: {
-      // Extend (add to) defaults
-      colors: {
-        brand: {
-          50:  '#f0f9ff',
-          500: '#0ea5e9',
-          900: '#0c4a6e',
-        },
-      },
-      fontFamily: {
-        sans: ['Inter', ...defaultTheme.fontFamily.sans],
-      },
-      spacing: {
-        '18': '4.5rem',
-        '112': '28rem',
-      },
-    },
-    // Replacing (not extending) defaults -- use sparingly
-    // borderRadius: { DEFAULT: '0.25rem', lg: '0.5rem' }
-  },
-  plugins: [
-    require('@tailwindcss/forms'),
-    require('@tailwindcss/typography'),
-    require('daisyui'),
-  ],
+DaisyUI v5 supports Tailwind v4. Install with:
+
+```bash
+npm install -D daisyui@5
+```
+
+```css
+@import "tailwindcss";
+@plugin "daisyui";
+
+/* DaisyUI theme config via @plugin options */
+@plugin "daisyui" {
+  themes: light --default, dark --prefersdark, corporate;
 }
 ```
 
-Never put full default config in your repo. Only include what you change.
+Custom DaisyUI theme in v5:
 
-## DaisyUI Component Patterns
+```css
+@plugin "daisyui/theme" {
+  name: "mytheme";
+  default: true;
+  color-scheme: light;
+  --color-primary: oklch(0.55 0.22 240);
+  --color-secondary: oklch(0.65 0.18 320);
+  --color-accent: oklch(0.70 0.20 160);
+  --color-base-100: oklch(1.0 0 0);
+}
+```
 
-DaisyUI adds semantic component classes on top of Tailwind utilities.
+Switch theme via `data-theme` on `<html>`:
 
 ```html
-<!-- Button variants -->
+<html data-theme="corporate">
+```
+
+Component patterns (unchanged from v3):
+
+```html
 <button class="btn btn-primary">Primary</button>
 <button class="btn btn-outline btn-sm">Small outline</button>
-<button class="btn btn-ghost loading">Loading</button>
 
-<!-- Card -->
 <div class="card bg-base-100 shadow-md">
   <div class="card-body">
     <h2 class="card-title">Title</h2>
-    <p>Content</p>
     <div class="card-actions justify-end">
       <button class="btn btn-primary">Action</button>
     </div>
   </div>
 </div>
 
-<!-- Alert -->
-<div class="alert alert-warning">
-  <span>Warning message</span>
-</div>
-
-<!-- Badge -->
+<div class="alert alert-warning"><span>Warning message</span></div>
 <span class="badge badge-secondary badge-outline">Label</span>
 ```
 
-DaisyUI themes override the full color palette. Configure in `tailwind.config.js`:
-
-```javascript
-daisyui: {
-  themes: ['light', 'dark', 'corporate'],
-  // or custom:
-  themes: [
-    {
-      mytheme: {
-        'primary': '#0ea5e9',
-        'secondary': '#f000b8',
-        'accent': '#1dcdbc',
-        'neutral': '#2b3440',
-        'base-100': '#ffffff',
-      }
-    },
-    'dark',
-  ],
-  darkTheme: 'dark',
-  logs: false,
-}
-```
-
-Switch theme by setting `data-theme` on `<html>`:
-
-```html
-<html data-theme="corporate">
-```
+Note: DaisyUI's semantic colors (`primary`, `secondary`) are CSS variables. Mixing custom `@theme` colors with DaisyUI is safe — use different names to avoid collisions.
 
 ## CSS Specificity and Mixing with Existing Styles
 
-When adding Tailwind to a project with existing CSS:
-
-**Problem**: existing styles override Tailwind utilities due to specificity.
-
-**Options (in order of preference):**
-
-1. Use Tailwind's `!important` modifier (`!text-red-500` generates `!important`)
-2. Scope legacy CSS under a class: `.legacy-scope { ... }` and only apply that class on old pages
-3. Use CSS layers to control ordering:
+v4 uses native CSS cascade layers, which gives you precise control when adding Tailwind to an existing project.
 
 ```css
-/* In your main CSS file, declare layer order */
-@layer base, legacy, components, utilities;
+@import "tailwindcss";
 
-/* Legacy styles go in a named layer so Tailwind utilities win */
+/* Declare additional layers; utilities layer always wins over lower layers */
 @layer legacy {
-  h1 { font-size: 2rem; }  /* Tailwind's utility layer beats this */
+  h1 { font-size: 2rem; }  /* Tailwind utilities beat this automatically */
 }
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 ```
 
-4. Increase specificity on problem elements with `:where()` / `:is()` or attribute selectors (last resort)
+Options when existing styles win over utilities:
 
-When inheriting a Bootstrap/Foundation project, consider running both in parallel during migration: Tailwind for new components, legacy framework for old ones, separated by template/component boundaries.
+1. Use `!` modifier (`!text-red-500` generates `!important`)
+2. Scope legacy CSS in its own `@layer` so utilities take precedence
+3. Scope legacy CSS under a `.legacy-scope` class and only apply to old pages
+4. Last resort: raise specificity with `:is()` / `:where()` selectors
+
+When inheriting a Bootstrap project, run both in parallel: Tailwind for new components, Bootstrap for old ones, separated by template/component boundaries.
 
 ## Spacing, Typography, and Layout Reference
 
-**Spacing scale** (1 unit = 4px): `p-1`=4px, `p-2`=8px, `p-4`=16px, `p-6`=24px, `p-8`=32px, `p-10`=40px, `p-12`=48px, `p-16`=64px.
+**Spacing scale** (1 unit = 4px): `p-1`=4px, `p-2`=8px, `p-4`=16px, `p-6`=24px, `p-8`=32px, `p-10`=40px, `p-12`=48px, `p-16`=64px. Arbitrary steps like `p-17` or `p-29` work without configuration in v4.
 
 **Common layout patterns:**
 
@@ -247,110 +344,35 @@ When inheriting a Bootstrap/Foundation project, consider running both in paralle
   <main class="flex-1">
 ```
 
-**Typography:**
+**Typography** (`@tailwindcss/typography` still a separate plugin in v4):
 
 ```html
-<!-- prose: renders rich text (from @tailwindcss/typography) -->
 <article class="prose prose-lg dark:prose-invert max-w-none">
   {{ content }}
 </article>
 
-<!-- Font sizes with leading -->
-<p class="text-sm leading-relaxed">
 <h1 class="text-3xl font-bold tracking-tight">
+<p class="text-sm leading-relaxed">
 <span class="text-xs font-medium uppercase tracking-wide text-gray-500">
 ```
 
 **Common text utilities:**
-- `truncate` — single line ellipsis
-- `line-clamp-3` — three-line clamp (requires `@tailwindcss/line-clamp` in Tailwind v3, built-in v3.3+)
+- `truncate` — single-line ellipsis
+- `line-clamp-3` — three-line clamp (built-in since v3.3, still works in v4)
 - `break-words` — wrap long words
 - `whitespace-pre-wrap` — preserve newlines
 
-## Performance: Purging and Critical CSS
-
-Tailwind removes unused CSS at build time via the `content` array in `tailwind.config.js`. This is mandatory for production.
-
-**Key rules for safe purging:**
-
-Do not build class names dynamically by string concatenation:
-
-```javascript
-// BAD: purge will not detect 'text-red-500' or 'text-green-500'
-const cls = `text-${status}-500`
-
-// GOOD: full class names present in source
-const cls = status === 'error' ? 'text-red-500' : 'text-green-500'
-```
-
-For dynamic classes generated by Python/Django, use a safelist:
-
-```javascript
-// tailwind.config.js
-safelist: [
-  'text-red-500',
-  'text-green-500',
-  // or pattern:
-  { pattern: /bg-(red|green|blue)-(100|500|900)/ },
-],
-```
-
-**Build-time CSS generation** (with django-tailwind or direct CLI):
-
-```bash
-# Development (watch mode)
-npx tailwindcss -i ./static/src/input.css -o ./static/css/styles.css --watch
-
-# Production (minified)
-npx tailwindcss -i ./static/src/input.css -o ./static/css/styles.css --minify
-```
-
-Critical CSS: for first-paint performance, inline the above-the-fold styles in `<head>`. Tools like `critical` or Vite's `vite-plugin-critical` can automate this. In most Django projects with HTMX/Alpine, this is not necessary unless running Lighthouse audits.
-
 ## Django Integration
 
-### Option 1: django-tailwind (recommended for new projects)
+### Option 1: Direct CLI (recommended for v4)
+
+`django-tailwind` does not support Tailwind v4 yet (as of early 2026). Use the CLI directly.
 
 ```bash
-pip install django-tailwind
-# Optional: browser reload on template change
-pip install django-browser-reload
+npm install -D tailwindcss @tailwindcss/cli
 ```
 
-```python
-# settings.py
-INSTALLED_APPS = [
-    ...
-    'tailwind',
-    'theme',  # your theme app, generated below
-    'django_browser_reload',  # optional
-]
-
-TAILWIND_APP_NAME = 'theme'
-INTERNAL_IPS = ['127.0.0.1']
-```
-
-```bash
-python manage.py tailwind init    # Creates 'theme' app
-python manage.py tailwind install # npm install
-python manage.py tailwind start   # Dev watch
-python manage.py tailwind build   # Production build
-```
-
-The generated `theme/templates/base.html` includes the correct `{% tailwind_css %}` tag. In other templates:
-
-```html
-{% load tailwind_tags %}
-<!DOCTYPE html>
-<html>
-<head>
-  {% tailwind_css %}
-</head>
-```
-
-### Option 2: Direct CLI in existing Django project
-
-Add to `package.json` at project root:
+`package.json` at project root:
 
 ```json
 {
@@ -359,31 +381,71 @@ Add to `package.json` at project root:
     "build": "tailwindcss -i ./static/src/input.css -o ./static/css/tailwind.css --minify"
   },
   "devDependencies": {
-    "tailwindcss": "^3.4.0",
-    "@tailwindcss/forms": "^0.5.0",
-    "@tailwindcss/typography": "^0.5.0"
+    "tailwindcss": "^4.0.0",
+    "@tailwindcss/cli": "^4.0.0"
   }
 }
 ```
 
-Static files config:
+`static/src/input.css`:
+
+```css
+@import "tailwindcss";
+
+/* Explicit source paths for Django templates */
+@source "../../templates/**/*.html";
+@source "../../**/templates/**/*.html";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-brand-500: oklch(0.55 0.22 240);
+}
+```
+
+Django settings:
 
 ```python
-# settings.py
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 ```
 
-In templates:
+Template:
 
 ```html
 {% load static %}
 <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
 ```
 
-### Static file pipeline for production
+### Option 2: Vite + django-vite
 
-Commit the compiled `tailwind.css` to the repo, or generate it in CI before `collectstatic`. Do not rely on running the Tailwind CLI at runtime.
+For projects already using Vite (`django-vite` package):
+
+```javascript
+// vite.config.js
+import { defineConfig } from 'vite'
+import tailwindcss from '@tailwindcss/vite'
+
+export default defineConfig({
+  plugins: [tailwindcss()],
+  build: {
+    outDir: 'static/dist',
+    rollupOptions: {
+      input: 'static/src/main.css',
+    },
+  },
+})
+```
+
+### Production Pipeline
+
+Commit compiled `tailwind.css` to repo, or generate in CI before `collectstatic`. Never run the CLI at runtime.
+
+CI / deploy:
+
+```bash
+npm run build
+python manage.py collectstatic --noinput
+```
 
 For Whitenoise:
 
@@ -393,21 +455,26 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
     ...
 ]
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-```
-
-Run in CI/deploy:
-
-```bash
-npm run build
-python manage.py collectstatic --noinput
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 ```
 
 ## Common Pitfalls
 
-1. **Dynamic class names get purged**: always use full class names in source, or safelist patterns.
-2. **`@apply` in `base` layer**: breaks the cascade. Only use `@apply` in `components` layer.
-3. **DaisyUI theme conflicts with custom colors**: DaisyUI's semantic colors (`primary`, `secondary`) override your `extend.colors`. Use DaisyUI's theme system or rename your custom colors.
-4. **Forgetting `dark:` variants on nested elements**: dark mode requires every element to declare its dark variant explicitly. There is no inheritance.
-5. **Conflicting Tailwind + Bootstrap base styles**: both reset/normalize the browser. Only include one `base` layer or scope the other under a CSS layer.
-6. **`content` array too narrow**: if Tailwind misses a file, classes in it are purged in production. Verify coverage with `--dry-run` or by checking the output CSS size.
+1. **Dynamic class names get missed by scanner**: always write full class names in source, or use `@source inline(...)` to safelist them.
+2. **Using `tailwind.config.js`**: this is v3 syntax. In v4 all config is in CSS via `@theme`. Delete it.
+3. **`@tailwind base/components/utilities` directives**: remove them. Replace with `@import "tailwindcss"`.
+4. **`@apply` outside `@layer components`**: only use `@apply` inside `@layer components`. It breaks the cascade in other layers.
+5. **`bg-gradient-to-r` in v4**: the class is now `bg-linear-to-r`. Rename all gradient utilities.
+6. **`darkMode: 'class'` config**: this was `tailwind.config.js` syntax. In v4, configure dark mode via `@variant dark` in CSS.
+7. **DaisyUI v4 + Tailwind v4**: DaisyUI v4 is incompatible with Tailwind v4. You need DaisyUI v5.
+8. **`django-tailwind`**: does not support Tailwind v4 as of early 2026. Use the CLI or Vite directly.
+9. **Not scoping `@source` on multi-app Django projects**: auto-detection works from the directory where you run the CLI. Add explicit `@source` paths for apps in non-standard locations.
+
+## Cross-references
+
+- Alpine.js reactive state and Tailwind class toggling: see `donna:alpine-js` skill
+- Alpine + HTMX patterns including class transitions: see `donna:alpine-htmx` skill
