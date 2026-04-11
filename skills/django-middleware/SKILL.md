@@ -108,28 +108,7 @@ def timing_middleware(get_response):
 
 ### Async-Only Middleware
 
-When the middleware itself requires async (e.g., it awaits I/O directly), mark it async-only so Django raises an error if it is placed in a WSGI stack:
-
-```python
-from asgiref.sync import iscoroutinefunction, markcoroutinefunction
-from django.http import HttpRequest, HttpResponse
-
-
-class AsyncOnlyMiddleware:
-    async_capable = True
-    sync_capable = False
-
-    def __init__(self, get_response) -> None:
-        if not iscoroutinefunction(get_response):
-            raise ValueError("AsyncOnlyMiddleware requires an async handler")
-        self.get_response = get_response
-        markcoroutinefunction(self)
-
-    async def __call__(self, request: HttpRequest) -> HttpResponse:
-        # Await external I/O here without sync_to_async overhead.
-        response = await self.get_response(request)
-        return response
-```
+Set `async_capable = True`, `sync_capable = False`, call `markcoroutinefunction(self)` in `__init__`, and define only `async def __call__`. Raise `ValueError` in `__init__` if `get_response` is not a coroutine function. Django will error if this middleware is placed in a WSGI stack.
 
 See `django-asyncio` skill for ORM async methods, auth, and session async variants.
 
@@ -192,10 +171,10 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",   # needs session above it
-    "django.contrib.auth.middleware.LoginRequiredMiddleware",    # Django 4.1+; after auth
+    "django.contrib.auth.middleware.LoginRequiredMiddleware",    # after auth
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "django.middleware.csp.ContentSecurityPolicyMiddleware",     # Django 6.0+; near bottom
+    "django.middleware.csp.ContentSecurityPolicyMiddleware",     # near bottom
 ]
 ```
 
@@ -204,8 +183,8 @@ MIDDLEWARE = [
 - `SessionMiddleware` must come before `AuthenticationMiddleware` (auth reads from session).
 - `SecurityMiddleware` goes first — it handles redirects and security headers before anything else.
 - `CsrfViewMiddleware` before your views; `CsrfViewMiddleware` reads cookies set by session.
-- `LoginRequiredMiddleware` (Django 4.1+) goes after `AuthenticationMiddleware`; it redirects unauthenticated users globally unless a view opts out with `@login_not_required`.
-- `ContentSecurityPolicyMiddleware` (Django 6.0+) goes near the bottom; configure via `SECURE_CSP` / `SECURE_CSP_REPORT_ONLY` settings. Any middleware that reads `request.csp_nonce` must come after it.
+- `LoginRequiredMiddleware` goes after `AuthenticationMiddleware`; it redirects unauthenticated users globally unless a view opts out with `@login_not_required`.
+- `ContentSecurityPolicyMiddleware` goes near the bottom; configure via `SECURE_CSP` / `SECURE_CSP_REPORT_ONLY` settings. Any middleware that reads `request.csp_nonce` must come after it.
 - Your custom middleware: place after `AuthenticationMiddleware` if it needs `request.user`; place before `SecurityMiddleware` only for very early short-circuits (unusual).
 - Whitenoise (static files) goes right after `SecurityMiddleware` so static files bypass auth.
 
@@ -336,7 +315,7 @@ def test_maintenance_mode_passes_admin(rf, settings):
     assert response.status_code == 200
 ```
 
-For async middleware use `AsyncRequestFactory` (Django 4.1+) and `pytest-asyncio`:
+For async middleware use `AsyncRequestFactory` and `pytest-asyncio`:
 
 ```python
 import pytest
@@ -362,53 +341,6 @@ async def test_async_timing_header(arf):
 
     assert "X-Duration" in response
 ```
-
-## Common Patterns
-
-### Adding Security Headers
-
-```python
-class SecurityHeadersMiddleware:
-    def __init__(self, get_response) -> None:
-        self.get_response = get_response
-
-    def __call__(self, request: HttpRequest) -> HttpResponse:
-        response = self.get_response(request)
-        response["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response["Permissions-Policy"] = "geolocation=(), microphone=()"
-        return response
-```
-
-### Logging Request Timing
-
-```python
-import logging
-import time
-
-logger = logging.getLogger(__name__)
-
-
-class RequestLoggingMiddleware:
-    def __init__(self, get_response) -> None:
-        self.get_response = get_response
-
-    def __call__(self, request: HttpRequest) -> HttpResponse:
-        t0 = time.perf_counter()
-        response = self.get_response(request)
-        duration_ms = (time.perf_counter() - t0) * 1000
-        logger.info(
-            "request completed",
-            extra={
-                "method": request.method,
-                "path": request.path,
-                "status": response.status_code,
-                "duration_ms": round(duration_ms, 1),
-            },
-        )
-        return response
-```
-
-See `logging` skill for structured logging conventions.
 
 ## Built-in CSP Middleware (Django 6.0+)
 
@@ -446,6 +378,6 @@ Access the nonce in templates via `{{ request.csp_nonce }}` (or `{{ csp_nonce }}
 - For dual sync/async: set `async_capable`/`sync_capable`, call `markcoroutinefunction(self)` in `__init__`, dispatch via `__acall__`.
 - For per-request state: attach to `request` (preferred) or use `contextvars.ContextVar` (not `threading.local`).
 - `process_view` and `process_exception` work as class methods without `MiddlewareMixin`.
-- Middleware ordering matters: session before auth, security first, CSP (`ContentSecurityPolicyMiddleware`) near the bottom (Django 6.0+).
+- Middleware ordering matters: session before auth, security first, CSP (`ContentSecurityPolicyMiddleware`) near the bottom.
 - Any sync middleware in an ASGI stack forces a thread hop for the whole request.
 - Test with `RequestFactory` / `AsyncRequestFactory` in isolation, not `Client`.

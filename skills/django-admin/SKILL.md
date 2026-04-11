@@ -29,7 +29,7 @@ class OrderAdmin(admin.ModelAdmin):
         return format_html('<a href="{}">{}</a>', url, obj.customer)
 ```
 
-**`list_display` with `__` lookups (Django 5.1+):** You can now use `__` traversal directly in `list_display` to display related fields without writing a callable:
+**`list_display` with `__` lookups:** Use `__` traversal directly in `list_display` to display related fields without writing a callable:
 
 ```python
 class OrderAdmin(admin.ModelAdmin):
@@ -378,18 +378,3 @@ urlpatterns = [
 ```
 
 Register models to each site explicitly. Models on the default `django.contrib.admin.site` are invisible to custom sites.
-
-## Summary
-
-- `extra = 0` on all inlines in production
-- `list_select_related` with explicit field list, never `True`
-- Use `__` lookups in `list_display` for simple related field display (Django 5.1+); use `@admin.display()` when you need a custom label, ordering, or logic
-- Use `@admin.display(description=..., ordering=...)` on callables — not the old `func.short_description` / `func.admin_order_field` attribute pattern
-- Override `get_queryset()` to add annotations and prefetches that match `list_display`
-- `show_full_result_count = False` for large tables
-- Use `self.admin_site.admin_view()` to wrap custom view functions
-- Scope access in both `get_queryset()` and `has_*_permission()` — one without the other is incomplete
-- `get_readonly_fields(request, obj=None)` for state-dependent locking; `obj` is `None` on add
-- Override admin templates at the narrowest scope (`app/model/template.html` before `app/template.html`)
-
----

@@ -183,19 +183,7 @@ def handle(self, *args, **options):
         self.stdout.flush()
 ```
 
-A simple chunking helper if not available from your utils:
-
-```python
-from itertools import islice
-
-def chunked(iterable, size):
-    it = iter(iterable)
-    while True:
-        chunk = list(islice(it, size))
-        if not chunk:
-            break
-        yield chunk
-```
+Use `more_itertools.chunked` for the batching helper.
 
 ## Verbosity Levels
 
@@ -302,26 +290,6 @@ qs = Order.objects.filter(confirmation_sent_at__isnull=True)
 
 ## Common Patterns
 
-### Dry-Run Flag
-
-The most useful flag for destructive or expensive commands. Always implement it for commands that write data.
-
-```python
-def add_arguments(self, parser):
-    parser.add_argument("--dry-run", action="store_true", help="Preview without making changes")
-
-def handle(self, *args, **options):
-    dry_run = options["dry_run"]
-
-    with transaction.atomic():
-        count = self._process()
-        if dry_run:
-            transaction.set_rollback(True)
-            self.stdout.write(self.style.WARNING(f"Dry run complete: would have changed {count} records"))
-        else:
-            self.stdout.write(self.style.SUCCESS(f"Changed {count} records"))
-```
-
 ### Scoping by Tenant / Object
 
 ```python
@@ -416,5 +384,3 @@ def test_sync_products_idempotent():
     call_command("sync_products")
     assert Product.objects.count() == count_after_first
 ```
-
----

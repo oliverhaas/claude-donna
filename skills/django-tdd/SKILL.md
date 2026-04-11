@@ -283,5 +283,3 @@ def test_order_list_view_query_count(client, django_assert_num_queries, db):
 ```
 
 Pin query counts after confirming N+1s are resolved — it acts as a regression guard. Re-evaluate the count if the view intentionally adds queries later.
-
----

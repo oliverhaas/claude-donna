@@ -1,6 +1,6 @@
 ---
 name: django-signals
-description: Django signal patterns for decoupled side effects. Use when wiring up cross-app reactions, custom signal definitions, or async dispatch (Django 5.0+).
+description: Django signal patterns for decoupled side effects. Use when wiring up cross-app reactions, custom signal definitions, or async dispatch.
 user-invocable: false
 ---
 
@@ -63,11 +63,6 @@ class MyAppConfig(AppConfig):
 
     def ready(self) -> None:
         import myapp.signals  # noqa: F401 — side effects only
-```
-
-```python
-# myapp/__init__.py
-default_app_config = "myapp.apps.MyAppConfig"
 ```
 
 ### `.connect()` (for conditional or programmatic wiring)
@@ -282,15 +277,3 @@ def disable_order_signals():
 ```
 
 Or use `django.test.utils.isolate_apps` / `mock.patch.object(signal, "send")` for broader suppression.
-
-## Anti-Patterns to Avoid
-
-- Using signals for logic within the same app — use save hooks or services instead
-- Importing signal receivers at module level (causes circular imports)
-- Relying on receiver firing order for correctness
-- Calling `.save()` on the received instance from a `post_save` receiver
-- Dispatching Celery tasks directly from signals without `on_commit`
-- Forgetting `weak=False` for lambda or bound-method receivers
-- Using `send()` when receiver failures should be tolerated — use `send_robust()`
-
----

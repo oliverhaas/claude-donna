@@ -390,5 +390,3 @@ acquired = await cache.aadd(lock_key, "1", timeout=LOCK_TIMEOUT)
 **`TIMEOUT=None` leaks memory** — keys without expiry accumulate indefinitely. Only use `None` for truly static data. Always set an explicit TTL otherwise.
 
 **Serialization errors** — don't cache objects that can't be pickled/msgpack-serialized (file handles, locks, generator instances). Cache plain dicts, lists, primitives, and simple dataclasses.
-
----

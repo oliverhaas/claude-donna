@@ -8,8 +8,6 @@ user-invocable: false
 
 Opinionated debugging playbook for the Django stack. Work through the relevant section top-to-bottom.
 
----
-
 ## Debug Tooling Setup
 
 ### django-debug-toolbar (local only)
@@ -51,8 +49,6 @@ LOGGING = {
     },
 }
 ```
-
----
 
 ## ORM Issues
 
@@ -98,24 +94,11 @@ def test_order_list_query_count(db):
 
 ### Lazy Evaluation Surprises
 
-QuerySets are lazy — they evaluate on iteration, slicing, or explicit calls. Common traps:
+QuerySets are lazy — they evaluate on iteration, slicing, or explicit calls.
 
-```python
-# Trap 1: function receives a QS and evaluates it multiple times
-def send_emails(users):
-    logger.info("Sending to %d users", users.count())  # DB hit 1
-    for u in users: ...                                  # DB hit 2
-
-# Fix: evaluate once before passing
-users = list(User.objects.filter(...))
-
-# Trap 2: filtering after slicing raises TypeError at query time, not at definition
-qs = MyModel.objects.all()[:10]
-qs.filter(active=True)  # raises TypeError: Cannot filter a query once a slice has been taken.
-
-# Trap 3: QS passed to template rendered multiple times hits DB multiple times
-# Fix: pass list() or use {% with %} tag in the template
-```
+- If a QS is passed to a function that calls `.count()` and then iterates, that's two DB hits. Evaluate to `list()` once when you need both.
+- Filtering after slicing raises `TypeError` at query time, not at definition.
+- A QS passed to a template that renders it multiple times hits the DB multiple times. Pass `list()` or use `{% with %}` to cache.
 
 ### QuerySet Caching
 
@@ -164,8 +147,6 @@ with connection.cursor() as cursor:
         print(row[0])
 ```
 
----
-
 ## Migration Failures
 
 ### Checklist
@@ -203,13 +184,9 @@ The two most common causes:
 1. **Importing the real model instead of the historical model** — always use `apps.get_model()`:
 
 ```python
-# Correct
 def forwards(apps, schema_editor):
     MyModel = apps.get_model("myapp", "MyModel")
     MyModel.objects.filter(old_field="x").update(new_field="y")
-
-# Wrong — uses live model class, will fail if schema has changed since this migration
-from myapp.models import MyModel
 ```
 
 2. **Large datasets without batching** — data migrations run in one transaction by default; a failure rolls back everything. For large tables, set `atomic = False` and batch:
@@ -242,8 +219,6 @@ uv run python manage.py migrate --fake app_name 0001_squashed_0042
 ```
 
 Remove the original migration files and the `replaces` attribute only after every environment (including production) has run the squash.
-
----
 
 ## Template Errors
 
@@ -283,20 +258,13 @@ TEMPLATES = [{
 - The included template's required context variables are present in the parent context
 - No circular includes
 
----
-
 ## Celery Task Failures
 
 ### Serialization Errors
 
+Pass only PKs to tasks, not model instances — instances are not JSON serializable.
+
 ```python
-# TypeError: Object of type MyModel is not JSON serializable
-# Cause: passing Django model instances as task arguments
-
-# Wrong
-my_task.delay(instance)
-
-# Correct: pass the PK, re-fetch inside the task
 my_task.delay(instance.pk)
 
 @shared_task
@@ -333,15 +301,9 @@ CELERY_TASK_ROUTES = {"myapp.tasks.heavy": {"queue": "heavy"}}
 
 ### Task Dispatched Before DB Commit
 
-Tasks dispatched inside `@transaction.atomic` may run before the transaction commits:
+Tasks dispatched inside `@transaction.atomic` may run before the transaction commits — the worker fetches the object and gets `DoesNotExist`. Always dispatch with `on_commit`:
 
 ```python
-# Dangerous: worker may fetch obj before the transaction commits — DoesNotExist
-with transaction.atomic():
-    obj = MyModel.objects.create(...)
-    my_task.delay(obj.pk)
-
-# Correct: use on_commit
 with transaction.atomic():
     obj = MyModel.objects.create(...)
     transaction.on_commit(lambda: my_task.delay(obj.pk))
@@ -362,8 +324,6 @@ CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
 ```
 
----
-
 ## Common Django Tracebacks
 
 | Traceback | Root cause |
@@ -378,8 +338,6 @@ CELERY_TASK_EAGER_PROPAGATES = True
 | `SuspiciousOperation: Invalid HTTP_HOST header` | Hostname not in `ALLOWED_HOSTS` |
 | `ImproperlyConfigured` | Settings not loaded, or circular import in `AppConfig.ready()` |
 | `AppRegistryNotReady` | Importing models at module level before `django.setup()` has run |
-
----
 
 ## Signal Debugging
 
@@ -442,8 +400,6 @@ def test_without_specific_handler(db):
         post_save.connect(my_handler, sender=MyModel)
 ```
 
----
-
 ## Middleware Debugging
 
 ### Ordering Bugs
@@ -493,15 +449,3 @@ class DebugRequestMiddleware:
         return response
 ```
 
----
-
-## Summary
-
-- **N+1**: `select_related` for FK, `prefetch_related` for reverse FK/M2M, annotate to avoid loading objects
-- **QuerySets are lazy**: evaluate to `list()` once if you need both a check and iteration
-- **Migrations**: read the traceback, use `--plan` and `sqlmigrate` before touching anything
-- **Data migrations**: always `apps.get_model()`, never import the live model class; batch large tables
-- **Templates**: enable `string_if_invalid` locally; verify includes have the correct context variables
-- **Celery**: pass PKs not model instances; dispatch with `on_commit` to avoid race conditions
-- **Signals**: always use `dispatch_uid`; verify receivers in `shell_plus`; no ordering guarantees between receivers
-- **Middleware**: ordering matters; any sync middleware in an ASGI stack causes thread hops for the full request

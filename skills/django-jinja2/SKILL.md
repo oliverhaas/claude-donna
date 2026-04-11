@@ -10,8 +10,6 @@ Authoring Jinja2 templates in Django. Covers environment setup, differences from
 
 For converting existing DTL templates to Jinja2, use the `django-jinjafy` skill instead.
 
----
-
 ## When to Use Jinja2 vs DTL
 
 **Use Jinja2 when:**
@@ -27,8 +25,6 @@ For converting existing DTL templates to Jinja2, use the `django-jinjafy` skill 
 - You rely heavily on third-party apps whose templates are DTL (mixing is possible but messy)
 
 **Mixing:** Django supports both in the same project via `TEMPLATES`. DTL and Jinja2 templates cannot extend each other — keep them in separate directories.
-
----
 
 ## Environment Setup
 
@@ -91,8 +87,6 @@ def environment(**options) -> Environment:
 ```
 
 Reference it in `OPTIONS["environment"]` as shown above.
-
----
 
 ## Key Differences from DTL
 
@@ -166,8 +160,6 @@ DTL uses `:` for filter arguments; Jinja2 uses `()`:
 {{ total }}
 ```
 
----
-
 ## Template Inheritance
 
 Works the same as DTL conceptually, with minor syntax differences.
@@ -200,8 +192,6 @@ Works the same as DTL conceptually, with minor syntax differences.
 
 Block names **cannot contain hyphens** in Jinja2. Use underscores: `{% block nav_sidebar %}`.
 
----
-
 ## Staticfiles and URL Reversing
 
 Register `static` and `url` in your environment globals (shown above). Usage:
@@ -217,8 +207,6 @@ Register `static` and `url` in your environment globals (shown above). Usage:
 `url()` maps directly to Django's `reverse()`. Named URL arguments work as keyword args.
 
 For URL generation that may fail silently (e.g., optional links), wrap in a try/except in a global helper rather than letting `NoReverseMatch` bubble up to templates.
-
----
 
 ## Custom Filters
 
@@ -257,8 +245,6 @@ def environment(**options) -> Environment:
 
 **Escaping rule**: if your filter returns HTML, wrap the return value in `Markup`. Jinja2 will not double-escape `Markup` instances.
 
----
-
 ## Custom Globals
 
 Globals are functions or values available in every template without being in the context:
@@ -276,8 +262,6 @@ def environment(**options) -> Environment:
 ```
 
 Use globals for site-wide constants and utility functions. Do not duplicate what belongs in the request context (e.g., `request.user`).
-
----
 
 ## Extensions
 
@@ -313,8 +297,6 @@ def environment(**options) -> Environment:
     {{ count }} items
 {% endtrans %}
 ```
-
----
 
 ## Macros
 
@@ -361,8 +343,6 @@ Macros **cannot access the outer template context** by default. Pass values expl
 
 If a macro calls Django methods on its arguments (like `bf.label_tag()`), remember Jinja2 does not auto-call — use `()` explicitly.
 
----
-
 ## CSRF
 
 Jinja2 does not have `{% csrf_token %}`. Use the `csrf_input` variable provided by Django's CSRF middleware:
@@ -375,18 +355,6 @@ Jinja2 does not have `{% csrf_token %}`. Use the `csrf_input` variable provided 
 ```
 
 `csrf_input` renders a `<input type="hidden" ...>` tag as a `Markup` string. It is automatically available in the template context when `django.middleware.csrf.CsrfViewMiddleware` is active.
-
----
-
-## Performance Notes
-
-- Jinja2 compiles templates to Python bytecode and caches them. In production (`DEBUG=False`), templates are compiled once on first render.
-- Jinja2 is generally 2-10x faster than DTL for templates with complex logic, loops, and many variable lookups.
-- DTL overhead is mostly in tag resolution and the context stack. Jinja2's compiled bytecode eliminates this.
-- For extremely hot paths, consider moving rendering to the view layer using Python string formatting or `format_html`.
-- Do not put slow logic in template globals or filters — they run per-render, not per-request.
-
----
 
 ## Common Gotchas
 
