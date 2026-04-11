@@ -8,27 +8,25 @@ user-invocable: false
 
 ## Backend Configuration
 
-Use `django-cachex` (our improved `django-redis` backend) for all Redis/Valkey caches.
+Use `django-cachex` for all Redis/Valkey caches. It provides Valkey and Redis backends with async support, extended data structures, distributed locking, pluggable serializers/compressors, and a built-in admin interface.
 
 ```python
 # settings.py
 CACHES = {
     "default": {
-        "BACKEND": "django_cachex.CachexCache",
-        "LOCATION": env("REDIS_URL", default="redis://localhost:6379/1"),
+        "BACKEND": "django_cachex.cache.ValkeyCache",
+        "LOCATION": env("REDIS_URL", default="valkey://localhost:6379/1"),
         "OPTIONS": {
-            "CLIENT_CLASS": "django_cachex.client.DefaultClient",
-            "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
-            "SERIALIZER": "django_redis.serializers.msgpack.MSGPackSerializer",
+            "compressor": "django_cachex.compressors.zlib.ZlibCompressor",
+            "serializer": "django_cachex.serializers.msgpack.MessagePackSerializer",
         },
         "KEY_PREFIX": "myapp",
         "VERSION": 1,
         "TIMEOUT": 300,  # 5 minutes default; None = no expiry
     },
     "sessions": {
-        "BACKEND": "django_cachex.CachexCache",
-        "LOCATION": env("REDIS_SESSIONS_URL", default="redis://localhost:6379/2"),
-        "OPTIONS": {"CLIENT_CLASS": "django_cachex.client.DefaultClient"},
+        "BACKEND": "django_cachex.cache.ValkeyCache",
+        "LOCATION": env("REDIS_SESSIONS_URL", default="valkey://localhost:6379/2"),
         "KEY_PREFIX": "sess",
         "TIMEOUT": 86400,  # 1 day
     },
@@ -37,7 +35,7 @@ CACHES = {
 
 Use a **separate Redis database** (or separate Redis instance) for sessions vs. general caching. This prevents session eviction when the general cache fills up.
 
-For Valkey, the connection URL is identical — just point `LOCATION` at the Valkey endpoint. No other change is required.
+For Redis, use `django_cachex.cache.RedisCache` as the `BACKEND` and `redis://` URLs.
 
 ## Cache Key Design
 
@@ -232,7 +230,10 @@ def get_article_version(pk: int) -> int:
     return cache.get(f"article:{pk}:version", default=0)
 
 def bump_article_version(pk: int) -> None:
-    cache.incr(f"article:{pk}:version", delta=1, default=1)
+    try:
+        cache.incr(f"article:{pk}:version", delta=1)
+    except ValueError:
+        cache.set(f"article:{pk}:version", 1)
 
 def article_versioned_key(pk: int) -> str:
     v = get_article_version(pk)
@@ -259,34 +260,34 @@ Use sparingly — it scans the keyspace. Fine for deployments, admin actions, or
 
 ## django-cachex Usage Patterns
 
-`django-cachex` extends `django-redis` with improved connection handling, better error reporting, and first-class Valkey support.
+`django-cachex` exposes cache client methods beyond the standard Django cache API.
 
 ```python
-# Low-level client access (for pipelining or MULTI/EXEC)
+# Pipelining (MULTI/EXEC) via the cache client
 from django.core.cache import cache
 
-raw_client = cache.client.get_client()
-
-with raw_client.pipeline(transaction=True) as pipe:
-    pipe.set("key1", "val1", ex=300)
-    pipe.set("key2", "val2", ex=300)
+with cache._cache.pipeline(transaction=True) as pipe:
+    pipe.set("key1", "val1", timeout=300)
+    pipe.set("key2", "val2", timeout=300)
     pipe.execute()
 
-# Increment a counter atomically
-cache.incr("page:views:home", delta=1, default=0)
+# Increment a counter atomically (key must exist; raises ValueError if missing)
+cache.add("page:views:home", 0)  # no-op if already set
+cache.incr("page:views:home", delta=1)
 
 # Touch (reset TTL without changing value)
 cache.touch("session:abc123", timeout=3600)
 ```
 
-Connection error handling — `django-cachex` raises `CacheConnectionError` on connection failures. Catch it when caching is optional:
+Connection error handling — on connection failures, the underlying valkey-py/redis-py raises connection errors. Catch them when caching is optional:
 
 ```python
-from django_cachex.exceptions import CacheConnectionError
+from django.core.cache import cache
+from valkey.exceptions import ConnectionError as ValkeyConnectionError
 
 try:
     cache.set(key, data, timeout=300)
-except CacheConnectionError:
+except ValkeyConnectionError:
     pass  # Degrade gracefully; DB is the source of truth
 ```
 
