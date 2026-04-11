@@ -23,12 +23,20 @@ class OrderAdmin(admin.ModelAdmin):
     ordering = ["-created_at"]
     date_hierarchy = "created_at"
 
+    @admin.display(description="Customer", ordering="customer__name")
     def customer_link(self, obj):
         url = reverse("admin:accounts_customer_change", args=[obj.customer_id])
         return format_html('<a href="{}">{}</a>', url, obj.customer)
-    customer_link.short_description = "Customer"
-    customer_link.admin_order_field = "customer__name"
 ```
+
+**`list_display` with `__` lookups (Django 5.1+):** You can now use `__` traversal directly in `list_display` to display related fields without writing a callable:
+
+```python
+class OrderAdmin(admin.ModelAdmin):
+    list_display = ["id", "customer__email", "customer__name", "status"]
+```
+
+Django automatically generates a column header from the field path. For custom headers or ordering, use a callable with `@admin.display()`.
 
 **list_filter tips:**
 - Use `admin.RelatedOnlyFieldListFilter` to filter FK dropdowns to values that actually appear in the list — prevents overly long filter sidebars on large datasets.
@@ -63,9 +71,9 @@ class OrderAdmin(admin.ModelAdmin):
             return self.readonly_fields + ["customer", "merchant"]
         return self.readonly_fields
 
+    @admin.display(description="Total")
     def total_display(self, obj):
         return f"{obj.total} {obj.currency}"
-    total_display.short_description = "Total"
 ```
 
 `get_readonly_fields(request, obj=None)` is the right hook — `obj` is `None` for add forms, an instance for change forms. Use this for state-dependent locking.
@@ -81,9 +89,9 @@ class OrderItemInline(admin.TabularInline):
     fields = ["product", "quantity", "unit_price", "line_total"]
     readonly_fields = ["line_total"]
 
+    @admin.display(description="Total")
     def line_total(self, obj):
         return obj.quantity * obj.unit_price
-    line_total.short_description = "Total"
 
 
 class OrderNoteInline(admin.StackedInline):
@@ -287,18 +295,17 @@ class OrderAdmin(admin.ModelAdmin):
         qs = qs.annotate(item_count_annotation=Count("items"))
         return qs
 
+    @admin.display(ordering="customer__email")
     def customer_email(self, obj):
         return obj.customer.email  # No extra query: list_select_related
-    customer_email.admin_order_field = "customer__email"
 
+    @admin.display(ordering="merchant__name")
     def merchant_name(self, obj):
         return obj.merchant.name  # No extra query: list_select_related
-    merchant_name.admin_order_field = "merchant__name"
 
+    @admin.display(description="Items", ordering="item_count_annotation")
     def item_count(self, obj):
         return obj.item_count_annotation
-    item_count.short_description = "Items"
-    item_count.admin_order_field = "item_count_annotation"
 ```
 
 **`list_select_related`** — set to a list of FK field names for the list view only. Setting it to `True` does an unbounded `select_related()` — avoid that.
@@ -376,6 +383,8 @@ Register models to each site explicitly. Models on the default `django.contrib.a
 
 - `extra = 0` on all inlines in production
 - `list_select_related` with explicit field list, never `True`
+- Use `__` lookups in `list_display` for simple related field display (Django 5.1+); use `@admin.display()` when you need a custom label, ordering, or logic
+- Use `@admin.display(description=..., ordering=...)` on callables — not the old `func.short_description` / `func.admin_order_field` attribute pattern
 - Override `get_queryset()` to add annotations and prefetches that match `list_display`
 - `show_full_result_count = False` for large tables
 - Use `self.admin_site.admin_view()` to wrap custom view functions
