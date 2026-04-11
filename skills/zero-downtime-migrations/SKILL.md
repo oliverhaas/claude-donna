@@ -123,11 +123,13 @@ def backfill_region(apps, schema_editor):
     Order.objects.filter(region__isnull=True).update(region="unknown")
 ```
 
-**Phase 3 — pre-deploy of next release:** Add NOT VALID constraint, then validate
+**Phase 3 — pre-deploy of next release:** Add NOT VALID constraint, then validate in a separate post-deploy migration
 
 ```python
-# Add constraint NOT VALID (doesn't scan existing rows)
-migrations.AddConstraint(
+from django.contrib.postgres.operations import AddConstraintNotValid, ValidateConstraint
+
+# Pre-deploy: add constraint without scanning existing rows
+migrations.AddConstraintNotValid(
     model_name="order",
     constraint=models.CheckConstraint(
         check=models.Q(region__isnull=False),
@@ -135,8 +137,12 @@ migrations.AddConstraint(
         violation_error_message="region is required",
     ),
 )
-# Then in a second operation or next post-deploy migration:
-# VALIDATE CONSTRAINT (scans rows, no lock)
+
+# Post-deploy (separate migration): validate existing rows — full scan but no write lock
+migrations.ValidateConstraint(
+    model_name="order",
+    name="order_region_not_null",
+)
 ```
 
 Alternatively with django-pg-zero-downtime-migrations, `AlterField` to `null=False` is made safe automatically by emitting `NOT VALID` + deferred `VALIDATE`.
@@ -222,34 +228,31 @@ class Migration(migrations.Migration):
 
 ### Unique index
 
-Never use `unique=True` on a new field if adding it via a single migration on a large table. Use:
-
-1. `AddIndexConcurrently` with a unique index to build it safely
-2. Then add the `UniqueConstraint` using the existing index (Postgres `USING INDEX`)
+Never use `unique=True` on a new field if adding it via a single migration on a large table. Django does not support `USING INDEX` to reuse a concurrently-built index when adding a `UniqueConstraint`, so the safe approach is to use `SeparateDatabaseAndState`: execute raw SQL to build the unique index concurrently, and update Django's migration state separately.
 
 ```python
-from django.contrib.postgres.operations import AddIndexConcurrently
-from django.db.models import UniqueConstraint
+from django.db import migrations, models
 
 class Migration(migrations.Migration):
-    atomic = False
+    atomic = False  # Required for CONCURRENTLY
 
     operations = [
-        AddIndexConcurrently(
-            model_name="order",
-            index=models.Index(
-                fields=["reference"],
-                name="order_reference_uniq",
-            ),
-        ),
-    ]
-
-# Separate atomic migration after the concurrent index build:
-class Migration(migrations.Migration):
-    operations = [
-        migrations.AddConstraint(
-            model_name="order",
-            constraint=UniqueConstraint(fields=["reference"], name="order_reference_unique"),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    sql="CREATE UNIQUE INDEX CONCURRENTLY order_reference_uniq ON orders_order (reference)",
+                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS order_reference_uniq",
+                ),
+            ],
+            state_operations=[
+                migrations.AddConstraint(
+                    model_name="order",
+                    constraint=models.UniqueConstraint(
+                        fields=["reference"],
+                        name="order_reference_uniq",
+                    ),
+                ),
+            ],
         ),
     ]
 ```
@@ -273,7 +276,7 @@ class Migration(migrations.Migration):
     ]
 ```
 
-django-pg-zero-downtime-migrations emits `ADD CONSTRAINT ... NOT VALID` automatically for FK additions when configured. The validation pass is deferred to a post-deploy migration:
+django-pg-zero-downtime-migrations rewrites FK additions to use `ADD CONSTRAINT ... NOT VALID` automatically. The validation pass is deferred to a post-deploy migration. Django's built-in `ValidateConstraint` only handles check constraints — for FK validation use the one from the third-party library:
 
 ```python
 from syzygy import Stage
@@ -292,13 +295,15 @@ class Migration(migrations.Migration):
 
 ## CHECK Constraint Addition
 
-Same pattern — add `NOT VALID`, validate post-deploy:
+Use Django's built-in `AddConstraintNotValid` (available since Django 4.0) to add the constraint without scanning existing rows, then validate post-deploy. Both operations are in `django.contrib.postgres.operations`.
 
 ```python
+from django.contrib.postgres.operations import AddConstraintNotValid
+
 # Pre-deploy: add without validation
 class Migration(migrations.Migration):
     operations = [
-        migrations.AddConstraint(
+        AddConstraintNotValid(
             model_name="order",
             constraint=models.CheckConstraint(
                 check=models.Q(total__gte=0),
@@ -308,11 +313,11 @@ class Migration(migrations.Migration):
     ]
 ```
 
-With `ZERO_DOWNTIME_MIGRATIONS_RAISE_FOR_UNSAFE = True`, this is emitted as `NOT VALID`. Validate post-deploy:
+Validate post-deploy in a separate migration:
 
 ```python
 from syzygy import Stage
-from django_zero_downtime_migrations.operations import ValidateConstraint
+from django.contrib.postgres.operations import ValidateConstraint
 
 class Migration(migrations.Migration):
     stage = Stage.POST_DEPLOY
@@ -403,7 +408,7 @@ Before merging a migration:
 
 - [ ] No `AddField` with `null=False` and no DB/Django default on non-empty table
 - [ ] No plain `AddIndex` — use `AddIndexConcurrently` (with `atomic = False`)
-- [ ] No `AddConstraint` with immediate validation on large table
+- [ ] CHECK constraints use `AddConstraintNotValid` + deferred `ValidateConstraint`, not plain `AddConstraint`
 - [ ] FK additions use `NOT VALID` + deferred `ValidateConstraint`
 - [ ] Column drops are in `POST_DEPLOY` stage, app code already removed the field
 - [ ] Data migrations use `apps.get_model()`, not direct model imports
