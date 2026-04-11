@@ -33,4 +33,15 @@ for item in items:
 
 Applies to `transaction.on_commit`, `threading.Timer`, task scheduling, or any closure created in a loop.
 
+## Bracketless `except` (Python 3.14+)
+
+PEP 758 reintroduced the comma syntax for catching multiple exception types without `as`:
+
+```python
+except AttributeError, TypeError:
+    ...
+```
+
+This is **valid Python 3.14+** and equivalent to `except (AttributeError, TypeError):`. It is NOT the Python 2 syntax (which meant `except AttributeError as TypeError`). Both forms are acceptable; prefer parenthesised when using `as`.
+
 ---
