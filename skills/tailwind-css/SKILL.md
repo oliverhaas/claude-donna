@@ -239,64 +239,9 @@ Usage in templates:
 
 Every element must declare its own `dark:` variant — there is no inheritance.
 
-## DaisyUI v5 (Tailwind v4 compatible)
+## DaisyUI v5
 
-DaisyUI v5 supports Tailwind v4. Install with:
-
-```bash
-npm install -D daisyui@5
-```
-
-```css
-@import "tailwindcss";
-@plugin "daisyui";
-
-/* DaisyUI theme config via @plugin options */
-@plugin "daisyui" {
-  themes: light --default, dark --prefersdark, corporate;
-}
-```
-
-Custom DaisyUI theme in v5:
-
-```css
-@plugin "daisyui/theme" {
-  name: "mytheme";
-  default: true;
-  color-scheme: light;
-  --color-primary: oklch(0.55 0.22 240);
-  --color-secondary: oklch(0.65 0.18 320);
-  --color-accent: oklch(0.70 0.20 160);
-  --color-base-100: oklch(1.0 0 0);
-}
-```
-
-Switch theme via `data-theme` on `<html>`:
-
-```html
-<html data-theme="corporate">
-```
-
-Component patterns (unchanged from v3):
-
-```html
-<button class="btn btn-primary">Primary</button>
-<button class="btn btn-outline btn-sm">Small outline</button>
-
-<div class="card bg-base-100 shadow-md">
-  <div class="card-body">
-    <h2 class="card-title">Title</h2>
-    <div class="card-actions justify-end">
-      <button class="btn btn-primary">Action</button>
-    </div>
-  </div>
-</div>
-
-<div class="alert alert-warning"><span>Warning message</span></div>
-<span class="badge badge-secondary badge-outline">Label</span>
-```
-
-Note: DaisyUI's semantic colors (`primary`, `secondary`) are CSS variables. Mixing custom `@theme` colors with DaisyUI is safe — use different names to avoid collisions.
+Install: `npm install -D daisyui@5`. Add `@plugin "daisyui"` to your CSS entry point after `@import "tailwindcss"`. See the `daisyui` skill for component patterns, theming, design tokens, and Django template compositions.
 
 ## CSS Specificity and Mixing with Existing Styles
 
@@ -470,7 +415,7 @@ STORAGES = {
 4. **`@apply` outside `@layer components`**: only use `@apply` inside `@layer components`. It breaks the cascade in other layers.
 5. **`bg-gradient-to-r` in v4**: the class is now `bg-linear-to-r`. Rename all gradient utilities.
 6. **`darkMode: 'class'` config**: this was `tailwind.config.js` syntax. In v4, configure dark mode via `@variant dark` in CSS.
-7. **DaisyUI v4 + Tailwind v4**: DaisyUI v4 is incompatible with Tailwind v4. You need DaisyUI v5.
+7. **DaisyUI v4 + Tailwind v4**: incompatible. You need DaisyUI v5 (see `daisyui` skill).
 8. **`django-tailwind`**: does not support Tailwind v4 as of early 2026. Use the CLI or Vite directly.
 9. **Not scoping `@source` on multi-app Django projects**: auto-detection works from the directory where you run the CLI. Add explicit `@source` paths for apps in non-standard locations.
 

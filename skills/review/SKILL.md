@@ -110,6 +110,7 @@ ${CLAUDE_PLUGIN_ROOT}/skills/alpine-js/SKILL.md
 ${CLAUDE_PLUGIN_ROOT}/skills/alpine-htmx/SKILL.md
 ${CLAUDE_PLUGIN_ROOT}/skills/htmx/SKILL.md
 ${CLAUDE_PLUGIN_ROOT}/skills/tailwind-css/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/daisyui/SKILL.md
 
 ## Phase 3: Cross-Cutting Checks
 
