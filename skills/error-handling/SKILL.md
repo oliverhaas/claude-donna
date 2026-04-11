@@ -62,8 +62,8 @@ Rules:
 def user_create(*, email: str, password: str) -> "User":
     try:
         user = User.objects.create_user(email=email, password=password)
-    except IntegrityError:
-        raise DuplicateEmailError(email=email)
+    except IntegrityError as exc:
+        raise DuplicateEmailError(email=email) from exc
     return user
 
 # View: catch domain errors to produce HTTP responses
@@ -82,7 +82,7 @@ def register_view(request):
 @staticmethod
 def order_cancel(*, order: "Order", user: "User") -> None:
     if order.status == "cancelled":
-        raise OrderAlreadyCancelledError
+        raise OrderAlreadyCancelledError()
     order.status = "cancelled"
     order.full_clean()
     order.save()
@@ -121,6 +121,11 @@ def admin_view(request):
 ```
 
 Do not catch `Http404` or `PermissionDenied` inside services. Raise them from views only, or raise your own domain exceptions from services and translate in the view.
+
+**Django 6.0 additions:**
+
+- `Model.NotUpdated` — raised by `Model.save()` when a forced update (`update_fields` with `force_update=True`) finds no matching rows. Catch this instead of the generic `DatabaseError` for forced-update failures.
+- `django.core.mail.BadHeaderError` is deprecated in Django 6.0. Python's email library raises `ValueError` for headers with prohibited characters; catch `ValueError` instead.
 
 ## Error Responses in Views
 
@@ -249,12 +254,11 @@ When a service operation may be retried (e.g., from a Celery task), it must be i
 ```python
 # orders/tasks.py
 @shared_task(
-    bind=True,
     autoretry_for=(PaymentFailedError,),
     retry_backoff=True,
     max_retries=3,
 )
-def charge_order_task(self, order_id: int) -> None:
+def charge_order_task(*, order_id: int) -> None:
     order = Order.objects.get(pk=order_id)
     if order.status == "paid":
         return  # Already done — safe to retry
@@ -272,7 +276,7 @@ class PermanentPaymentError(OrdersError):
     autoretry_for=(PaymentFailedError,),  # Only transient errors
     max_retries=3,
 )
-def charge_order_task(order_id: int) -> None:
+def charge_order_task(*, order_id: int) -> None:
     ...
     # PermanentPaymentError bubbles out and is NOT retried
 ```
@@ -354,5 +358,48 @@ try:
 except IntegrityError as exc:
     raise DuplicateEmailError(email) from exc
 ```
+
+## Modern Python Exception Features
+
+### ExceptionGroup and `except*` (Python 3.11+)
+
+`ExceptionGroup` allows bundling multiple exceptions raised concurrently (e.g., from `asyncio.TaskGroup`). Use `except*` to match and handle sub-exceptions by type while letting others propagate.
+
+```python
+import asyncio
+
+async def fetch_all(urls: list[str]) -> list[str]:
+    async with asyncio.TaskGroup() as tg:
+        tasks = [tg.create_task(fetch(url)) for url in urls]
+    return [t.result() for t in tasks]
+    # If any tasks raise, TaskGroup raises ExceptionGroup
+
+# Handle specific sub-exception types:
+try:
+    results = await fetch_all(urls)
+except* TimeoutError as eg:
+    # eg.exceptions contains only the TimeoutErrors
+    logger.warning("Timed out on %d URLs", len(eg.exceptions))
+except* ValueError as eg:
+    raise  # re-raise the group
+```
+
+Only use `ExceptionGroup` / `except*` when you are actually dealing with concurrent operations (e.g., `asyncio.TaskGroup`, manual grouping). Do not use it as a replacement for ordinary `except` clauses.
+
+### Bracketless `except` for Multiple Types (Python 3.14+)
+
+PEP 758 allows omitting parentheses when catching multiple exception types without an `as` clause:
+
+```python
+# Python 3.14+: both forms are valid
+except TimeoutError, ConnectionRefusedError:
+    ...
+
+# Still required when using `as`:
+except (TimeoutError, ConnectionRefusedError) as exc:
+    ...
+```
+
+Prefer the parenthesised form for consistency and compatibility with older tooling.
 
 ---
