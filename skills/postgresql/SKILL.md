@@ -27,10 +27,10 @@ class Order(models.Model):
 
     class Meta:
         constraints = [
-            CheckConstraint(check=Q(quantity__gte=0), name="order_quantity_non_negative"),
-            CheckConstraint(check=Q(total__gte=0), name="order_total_non_negative"),
+            CheckConstraint(condition=Q(quantity__gte=0), name="order_quantity_non_negative"),
+            CheckConstraint(condition=Q(total__gte=0), name="order_total_non_negative"),
             CheckConstraint(
-                check=Q(status__in=["pending", "paid", "cancelled"]),
+                condition=Q(status__in=["pending", "paid", "cancelled"]),
                 name="order_status_valid",
             ),
         ]
@@ -303,7 +303,7 @@ Session-level locks (above) auto-release when the DB connection closes. For tran
 
 ### CTEs
 
-Django ORM doesn't natively support `WITH` CTEs (as of Django 5.x). Use `django-cte` or raw SQL.
+Django ORM doesn't natively support `WITH` CTEs (as of Django 6.x). Use `django-cte` or raw SQL.
 
 ```python
 from django.db import connection
@@ -625,7 +625,7 @@ class Campaign(models.Model):
 
 ```python
 from datetime import date
-from psycopg2.extras import DateRange
+from django.db.backends.postgresql.psycopg_any import DateRange
 
 Campaign.objects.create(active_period=DateRange(date(2025, 1, 1), date(2025, 12, 31)))
 
