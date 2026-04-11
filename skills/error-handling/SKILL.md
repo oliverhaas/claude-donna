@@ -285,59 +285,31 @@ See the `celery-tasks` skill for task error patterns.
 
 ## Anti-Patterns
 
-**Bare except** — catches `SystemExit`, `KeyboardInterrupt`, and hides bugs:
+**Bare except** — catches `SystemExit`, `KeyboardInterrupt`, and hides bugs. Always name what you expect:
 ```python
-# Wrong
-try:
-    process()
-except:
-    pass
-
-# Correct: catch what you expect, at minimum Exception
 try:
     process()
 except SpecificError:
     handle()
 ```
 
-**Swallowing errors** — silent failures are the hardest bugs to diagnose:
+**Swallowing errors** — never `except Exception: pass`. Log it even if you don't re-raise:
 ```python
-# Wrong
-try:
-    send_email(user)
-except Exception:
-    pass  # "It's not critical"
-
-# Correct: log it, even if you don't re-raise
 try:
     send_email(user)
 except Exception:
     logger.exception("Failed to send email to user %s", user.id)
 ```
 
-**Exception-driven flow control** — exceptions are for errors, not branching:
+**Exception-driven flow control** — use the API designed for the case, not a try/except:
 ```python
-# Wrong: using exceptions as if/else
-try:
-    return cache.get(key)
-except KeyError:
-    return compute_value()
-
-# Correct: use the API designed for it
 value = cache.get(key, default=None)
 if value is None:
     value = compute_value()
 ```
 
-**Catching too broadly** — masks unexpected errors:
+**Catching too broadly** — catch only your domain exception, not `Exception`:
 ```python
-# Wrong: catches everything including programming errors
-try:
-    result = OrdersService.order_create(...)
-except Exception:
-    return HttpResponse("Something went wrong", status=400)
-
-# Correct: catch only what you expect
 try:
     result = OrdersService.order_create(...)
 except OrdersError as exc:
@@ -346,13 +318,6 @@ except OrdersError as exc:
 
 **Losing the original exception** — always use `raise ... from exc` when re-raising:
 ```python
-# Wrong: original traceback lost
-try:
-    db_call()
-except IntegrityError:
-    raise DuplicateEmailError(email)
-
-# Correct: chain the exception
 try:
     db_call()
 except IntegrityError as exc:
@@ -361,7 +326,7 @@ except IntegrityError as exc:
 
 ## Modern Python Exception Features
 
-### ExceptionGroup and `except*` (Python 3.11+)
+### ExceptionGroup and `except*`
 
 `ExceptionGroup` allows bundling multiple exceptions raised concurrently (e.g., from `asyncio.TaskGroup`). Use `except*` to match and handle sub-exceptions by type while letting others propagate.
 
@@ -385,21 +350,3 @@ except* ValueError as eg:
 ```
 
 Only use `ExceptionGroup` / `except*` when you are actually dealing with concurrent operations (e.g., `asyncio.TaskGroup`, manual grouping). Do not use it as a replacement for ordinary `except` clauses.
-
-### Bracketless `except` for Multiple Types (Python 3.14+)
-
-PEP 758 allows omitting parentheses when catching multiple exception types without an `as` clause:
-
-```python
-# Python 3.14+: both forms are valid
-except TimeoutError, ConnectionRefusedError:
-    ...
-
-# Still required when using `as`:
-except (TimeoutError, ConnectionRefusedError) as exc:
-    ...
-```
-
-Prefer the parenthesised form for consistency and compatibility with older tooling.
-
----

@@ -263,7 +263,7 @@ user = await request.auser()
 
 **Session access without `await`.** `request.session` dict-style access (`request.session["key"]`) reads from an in-memory dict that was populated synchronously by `SessionMiddleware`. This is safe for reading, but `asave()` must be awaited. However, to be safe and explicit, prefer the async session methods.
 
-**`@login_required` with async views.** The decorator works with async views in Django 4.1+, but the redirect logic still runs synchronously. It will not async-check the session; the `request.user` attribute must already be populated by `AuthenticationMiddleware`.
+**`@login_required` with async views.** The redirect logic runs synchronously. `request.user` must already be populated by `AuthenticationMiddleware`; the decorator does not async-check the session.
 
 ### Cache Pitfalls in Async Context
 
@@ -465,22 +465,6 @@ products = [p async for p in Product.objects.all()]
 ### `DJANGO_ALLOW_ASYNC_UNSAFE`
 
 Setting this env var disables `SynchronousOnlyOperation` checks. Useful for Jupyter/IPython shells. Never use in production.
-
-## When NOT to Use Async
-
-Async views add complexity. Only use them when the benefit is clear:
-
-**Use async when:**
-- The view calls external services (HTTP, Redis, email, webhooks) concurrently.
-- The view streams a response while fetching data.
-- The view handles many simultaneous long-lived connections (SSE, polling).
-
-**Keep views sync when:**
-- The view does only ORM queries. Async ORM is `sync_to_async` under the hood — there is no throughput gain over sync views on ASGI.
-- The view is CPU-bound (image processing, serialization, report generation). Async doesn't parallelize CPU work in Python; offload to background workers instead. Use Django's built-in Tasks framework (Django 6.0+) for simple cases or Celery for complex workflows (see `celery-tasks` skill).
-- The view is simple and the team is not yet familiar with async Django pitfalls. Sync views on ASGI work fine.
-
-A mixed stack is fine: sync and async views can coexist in the same project under ASGI.
 
 ## Testing Async Django Code
 

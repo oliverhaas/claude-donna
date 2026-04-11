@@ -252,7 +252,7 @@ The `#partial_name` syntax also works with `{% include %}`:
 
 ### When to use partials vs. include
 
-- **`{% partialdef %}`** — the fragment lives inside the full-page template; no separate file needed; ideal for HTMX targets co-located with their surrounding page context. Preferred in Django 6.0+.
+- **`{% partialdef %}`** — the fragment lives inside the full-page template; no separate file needed; ideal for HTMX targets co-located with their surrounding page context.
 - **`{% include %}`** — the fragment is genuinely shared across multiple unrelated templates and belongs in its own file.
 
 **Migrating from `django-template-partials` (third-party):** Django 6.0's built-in partials are based on this package. A [migration guide](https://github.com/carltongibson/django-template-partials/blob/main/Migration.md) is available if you used it before upgrading.
@@ -280,7 +280,7 @@ Cache expensive template fragments with `{% cache %}`. The cache key is built fr
 - Second positional: fragment name (hardcoded string, not a variable)
 - Remaining: vary-by values (user id, locale, etc.)
 
-**Cache backend:** `{% cache %}` uses the `default` cache. To use a named backend, use the `using` argument (Django 3.2+):
+**Cache backend:** `{% cache %}` uses the `default` cache. To use a named backend, use the `using` argument:
 
 ```html
 {% cache 300 "product_card" product.pk using "fragments" %}
@@ -531,38 +531,6 @@ def product_list(request):
 
 The full page includes the partial via `{% include %}`. HTMX requests get the partial directly. No duplication.
 
-### Pattern 3: Block rendering with render_block
-
-With `django-render-block`, render a named block from an existing template without a separate file. Predates Django 6.0 partials; prefer Pattern 1 for new code:
-
-```python
-from render_block import render_block_to_string
-from django.http import HttpResponse
-
-def product_list(request):
-    context = {"products": Product.objects.active()}
-    if request.htmx:
-        html = render_block_to_string("shop/product_list.html", "product_list_block", context, request)
-        return HttpResponse(html)
-    return render(request, "shop/product_list.html", context)
-```
-
-```html
-{# shop/product_list.html #}
-{% extends "base.html" %}
-{% block content %}
-  {% block product_list_block %}
-    <ul id="product-list">
-      {% for product in products %}
-        <li>{{ product.name }}</li>
-      {% endfor %}
-    </ul>
-  {% endblock %}
-{% endblock %}
-```
-
-Adds a dependency; Pattern 1 (Django 6.0 partials) is now the preferred no-dependency alternative.
-
 ### HTMX out-of-band updates
 
 Use `hx-swap-oob` to update multiple parts of the page from a single response:
@@ -585,19 +553,5 @@ def add_to_cart(request, product_id):
 ```
 
 See the `alpine-htmx` skill for Alpine.js state preservation during HTMX swaps (morph, shared stores, event coordination).
-
-### Template structure for HTMX projects
-
-```
-templates/
-├── base.html
-├── shop/
-│   ├── product_list.html       # full-page templates
-│   ├── product_detail.html
-│   └── partials/
-│       ├── product_list.html   # HTMX fragment targets
-│       ├── product_card.html
-│       └── cart_button.html
-```
 
 Keep partials in a `partials/` subdirectory within each app's template namespace. Reference as `"shop/partials/product_list.html"`.

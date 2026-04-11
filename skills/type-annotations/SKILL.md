@@ -6,30 +6,6 @@ user-invocable: false
 
 # Type Annotations
 
-## Core Syntax Preferences
-
-Use union syntax from Python 3.10+:
-
-```python
-# Preferred
-def get_user(user_id: int) -> User | None: ...
-
-# Avoid
-from typing import Optional, Union
-def get_user(user_id: int) -> Optional[User]: ...
-```
-
-Use built-in generic types directly (Python 3.9+):
-
-```python
-# Preferred
-def process(items: list[str]) -> dict[str, int]: ...
-
-# Avoid
-from typing import List, Dict
-def process(items: List[str]) -> Dict[str, int]: ...
-```
-
 ## TYPE_CHECKING Imports
 
 Use `TYPE_CHECKING` to avoid circular imports and expensive runtime imports. The imported names are only available to type checkers, not at runtime.
@@ -67,21 +43,21 @@ def create_article() -> "Article":  # quoted because Article not imported at run
 
 ## TypeVar, ParamSpec, TypeVarTuple
 
-Prefer the Python 3.12+ `type` parameter syntax (PEP 695) for new code:
+Use PEP 695 `type` parameter syntax:
 
 ```python
-# Generic function - new style (Python 3.12+)
+# Generic function
 def first[T](items: list[T]) -> T:
     return items[0]
 
 
-# Generic class - new style
+# Generic class
 class Stack[T]:
     def push(self, item: T) -> None: ...
     def pop(self) -> T: ...
 
 
-# Decorator that preserves the wrapped function's signature - new style
+# Decorator that preserves the wrapped function's signature
 import functools
 from typing import Callable
 
@@ -92,19 +68,7 @@ def retry[**P, T](func: Callable[P, T]) -> Callable[P, T]:
     return wrapper
 ```
 
-Legacy style (still valid, use when targeting Python < 3.12):
-
-```python
-from typing import TypeVar, ParamSpec, TypeVarTuple
-
-T = TypeVar("T")
-T_co = TypeVar("T_co", covariant=True)  # for return types / read-only containers
-T_contra = TypeVar("T_contra", contravariant=True)  # for write-only / callback inputs
-P = ParamSpec("P")  # captures *args and **kwargs for decorators
-Ts = TypeVarTuple("Ts")  # for variadic generics
-```
-
-Note: covariance/contravariance with PEP 695 syntax is inferred automatically by the type checker based on usage - no explicit markers needed. If you need to be explicit, use the legacy `TypeVar("T_co", covariant=True)` form.
+For explicit variance (covariant/contravariant), use the legacy `TypeVar("T_co", covariant=True)` form — PEP 695 syntax infers variance automatically from usage.
 
 ## Protocols
 
@@ -136,7 +100,7 @@ def flush_and_close(resource: Closeable) -> None:
 flush_and_close(open("file.txt"))  # fine
 ```
 
-Protocols with generics (Python 3.12+ syntax - variance is inferred by the type checker):
+Protocols with generics (variance is inferred by the type checker):
 
 ```python
 from typing import Iterator, Protocol
@@ -198,7 +162,7 @@ def set_status(status: Status) -> None: ...
 JsonValue: TypeAlias = str | int | float | bool | None | list["JsonValue"] | dict[str, "JsonValue"]
 ```
 
-Use `type` statement (Python 3.12+) instead of `TypeAlias`:
+Prefer the `type` statement over `TypeAlias`:
 
 ```python
 type Status = Literal["draft", "published", "archived"]
@@ -427,39 +391,6 @@ if TYPE_CHECKING:
     from .models import Article  # only imported during type checking, not at runtime
 ```
 
-### Mutable Default Arguments in Type Hints
-
-```python
-# This is a runtime bug AND a type issue
-def append(item: int, lst: list[int] = []) -> list[int]:  # wrong
-    lst.append(item)
-    return lst
-
-# Correct
-def append(item: int, lst: list[int] | None = None) -> list[int]:
-    if lst is None:
-        lst = []
-    lst.append(item)
-    return lst
-```
-
-### Runtime vs Type-Time
-
-`TYPE_CHECKING` is `False` at runtime. Code inside that block never runs. Only use it for imports used in annotations:
-
-```python
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from .models import Article  # fine - only used in annotations
-
-# Wrong: using Article at runtime inside TYPE_CHECKING block
-if TYPE_CHECKING:
-    from .models import Article
-
-article = Article.objects.first()  # NameError at runtime - Article not imported
-```
-
 ### `type: ignore` Abuse
 
 Prefer fixing the underlying issue. Use `type: ignore` only for:
@@ -468,21 +399,3 @@ Prefer fixing the underlying issue. Use `type: ignore` only for:
 - Django ORM `objects` reassignment with custom manager (`# type: ignore[assignment]`)
 
 Always include the specific error code, not bare `# type: ignore`.
-
-## When NOT to Annotate
-
-Skip annotations for:
-
-- **Obvious local variables**: `x = 1`, `items = []` inside a function body - let the checker infer
-- **Simple list/dict comprehensions**: type is obvious from context
-- **Test helpers and fixtures** used only within tests: relax with `disallow_untyped_defs = false` in mypy config for `tests.*`
-- **`__repr__`** and **`__str__`**: always returns `str`, no annotation needed in practice
-- **Trivial private helpers** that are one-liners and only called once
-
-Always annotate:
-- All public function/method parameters and return types
-- Module-level variables that aren't obviously typed
-- Class attributes (especially in Django models and Pydantic models)
-- Any function that crosses a module boundary
-
----

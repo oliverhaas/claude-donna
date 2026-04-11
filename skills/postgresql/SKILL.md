@@ -8,8 +8,6 @@ user-invocable: false
 
 PostgreSQL-specific capabilities beyond what generic Django ORM covers. Cross-reference `django-orm-queries` for general query optimization and `django-data-migrations` for safely backfilling data when adding constraints.
 
----
-
 ## Constraints
 
 ### CHECK Constraints
@@ -99,7 +97,6 @@ class Migration(migrations.Migration):
 
 PostgreSQL constraints can't span tables. Use triggers for cross-table invariants (e.g., "a line item's product must belong to the same merchant as its order"). See the **Triggers** section below.
 
----
 
 ## Triggers and Trigger Functions
 
@@ -191,7 +188,6 @@ with pgtrigger.ignore("myapp.Order:protect_paid_orders"):
     Order.objects.filter(status="paid").delete()
 ```
 
----
 
 ## Index Types
 
@@ -250,7 +246,6 @@ class Meta:
     ]
 ```
 
----
 
 ## Advisory Locks
 
@@ -297,7 +292,6 @@ def process_account(account_id: int) -> None:
 
 Session-level locks (above) auto-release when the DB connection closes. For transaction-scoped locks use `pg_advisory_xact_lock` / `pg_try_advisory_xact_lock` — released at `COMMIT`/`ROLLBACK`.
 
----
 
 ## CTEs and Window Functions
 
@@ -383,7 +377,6 @@ top3_ids = (
 
 Or use a raw SQL CTE as shown above.
 
----
 
 ## JSONB Patterns
 
@@ -446,7 +439,6 @@ Product.objects.filter(id=pk).update(
 )
 ```
 
----
 
 ## Partitioning
 
@@ -508,7 +500,6 @@ def create_next_month_partition() -> None:
 
 Call from a periodic Celery task (e.g., monthly).
 
----
 
 ## Safe Schema Changes: django-pg-zero-downtime-migrations
 
@@ -558,7 +549,6 @@ migrations.AlterField(
 
 **Renaming a column:** never rename in a single deploy — it breaks running code. Add the new column, dual-write, backfill, switch reads, drop the old column across multiple deploys.
 
----
 
 ## PostgreSQL-Specific Django Fields and Lookups
 
@@ -674,19 +664,4 @@ class Product(models.Model):
         indexes = [GinIndex(fields=["search_vector"], name="product_search_gin")]
 ```
 
----
 
-## Summary
-
-- **Constraints:** Use `CheckConstraint`, `UniqueConstraint(condition=...)`, `ExclusionConstraint` for DB-level invariants. Cross-table constraints need triggers.
-- **Triggers:** Use `django-pgtrigger` to co-locate trigger definitions with models. Use `pgtrigger.ignore()` in data migrations and tests.
-- **Indexes:** B-tree for equality/range; GIN for JSONB/arrays/full-text; GiST for range overlap/geometric; BRIN for monotonically ordered append-only tables.
-- **Advisory locks:** Use `pg_advisory_lock` / `pg_try_advisory_lock` for distributed mutual exclusion without touching rows.
-- **Window functions:** Use Django `Window` expressions. Filtering on window results requires a subquery or raw SQL CTE.
-- **JSONB:** Use `JSONField` with GIN index. Update nested keys atomically with `jsonb_set` via `Func`.
-- **Partitioning:** Manage via raw migrations; create partitions ahead of time with a scheduled task.
-- **Safe migrations:** Use `django-pg-zero-downtime-migrations` backend + `django-syzygy` staged deploys. Add NOT NULL columns in three steps across multiple deploys.
-- **PG fields:** `ArrayField` (GIN-indexed), `HStoreField`, `DateRangeField`, `SearchVectorField` — all in `django.contrib.postgres`.
-
-
----

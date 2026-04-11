@@ -295,7 +295,7 @@ class Migration(migrations.Migration):
 
 ## CHECK Constraint Addition
 
-Use Django's built-in `AddConstraintNotValid` (available since Django 4.0) to add the constraint without scanning existing rows, then validate post-deploy. Both operations are in `django.contrib.postgres.operations`.
+Use Django's built-in `AddConstraintNotValid` to add the constraint without scanning existing rows, then validate post-deploy. Both operations are in `django.contrib.postgres.operations`.
 
 ```python
 from django.contrib.postgres.operations import AddConstraintNotValid
@@ -414,5 +414,3 @@ Before merging a migration:
 - [ ] Data migrations use `apps.get_model()`, not direct model imports
 - [ ] `ZERO_DOWNTIME_MIGRATIONS_RAISE_FOR_UNSAFE = True` passes in CI
 - [ ] `makemigrations --check` passes (no drift)
-
----
