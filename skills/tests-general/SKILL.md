@@ -9,9 +9,45 @@ user-invocable: false
 ## Framework and Structure
 
 - pytest as test runner with Django's test framework.
-- File naming: `test_foo_unit.py`, `test_foo_integration.py`, `test_foo_e2e.py`.
 - Only function-based tests. No `class Test...` patterns.
 - Prefer unit/integration tests over end-to-end where possible.
+
+## File Organization
+
+One `test_<feature>.py` per feature, containing all test levels (unit, integration, e2e) for that feature. This makes it easy to run everything related to a feature you're working on:
+
+```bash
+uv run pytest tests/test_caching.py        # all tests for caching
+uv run pytest tests/test_caching.py -m unit # just unit tests for caching
+```
+
+Use pytest markers to distinguish test levels:
+
+```python
+import pytest
+
+@pytest.mark.unit
+def test_cache_key_generation():
+    ...
+
+@pytest.mark.unit
+def test_cache_key_with_version():
+    ...
+
+@pytest.mark.e2e
+def test_cache_invalidation_on_save(live_server):
+    ...
+```
+
+Register markers in `pyproject.toml`:
+
+```toml
+[tool.pytest.ini_options]
+markers = [
+    "unit: fast, isolated unit tests",
+    "e2e: end-to-end browser/integration tests",
+]
+```
 
 ## Test Functions
 
