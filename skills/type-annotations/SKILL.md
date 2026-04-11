@@ -400,6 +400,21 @@ class Node:
 
 Note: class base expressions (e.g. `class Foo(Bar["Baz"])`) are evaluated eagerly in all Python versions, including 3.14. String quotes are still required there when `Baz` is a forward reference.
 
+### Inspecting Annotations at Runtime (`annotationlib`)
+
+Python 3.14 adds `annotationlib` for safely evaluating deferred annotations:
+
+```python
+import annotationlib
+
+# Get annotations with different evaluation strategies
+annotationlib.get_annotations(MyClass, format=annotationlib.Format.FORWARDREF)  # returns ForwardRef objects for unresolvable names
+annotationlib.get_annotations(MyClass, format=annotationlib.Format.STRING)      # returns string representations
+annotationlib.get_annotations(MyClass, format=annotationlib.Format.VALUE)       # evaluates fully (raises NameError on failure)
+```
+
+Use `annotationlib` instead of `typing.get_type_hints()` for new code on Python 3.14+. It handles deferred annotations correctly and gives control over evaluation strategy.
+
 ### Circular Imports
 
 ```python
