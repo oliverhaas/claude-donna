@@ -6,11 +6,11 @@ user-invocable: false
 
 # Type Annotations
 
+Assumes Python 3.14+ throughout (PEP 649/749 deferred annotations). Don't use `from __future__ import annotations` — it's deprecated in 3.14 and the behavior is now the default.
+
 ## TYPE_CHECKING Imports
 
-Use `TYPE_CHECKING` to avoid circular imports and expensive runtime imports. The imported names are only available to type checkers, not at runtime.
-
-In Python 3.14+, annotations are evaluated lazily by default (PEP 649/749) - forward references work without string quotes and without `from __future__ import annotations`:
+Use `TYPE_CHECKING` to avoid circular imports and expensive runtime imports:
 
 ```python
 from typing import TYPE_CHECKING
@@ -24,40 +24,23 @@ def create_article(*, author: Author, user: User) -> Article:
     ...
 ```
 
-`TYPE_CHECKING` is still needed even in Python 3.14+ when the import would cause a circular import at runtime or when you want to avoid importing a heavy module at runtime. The deferred evaluation only helps with name resolution inside annotations - it does not execute the imports.
-
-`from __future__ import annotations` is deprecated as of Python 3.14 (behavior is now the default) and will be removed once Python 3.13 reaches end-of-life in 2029. Don't add it to new files targeting Python 3.14+.
-
-**On Python 3.12–3.13**: quote names from `TYPE_CHECKING` blocks when you don't have `from __future__ import annotations`:
-
-```python
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from .models import Article
-
-
-def create_article() -> "Article":  # quoted because Article not imported at runtime
-    ...
-```
+`TYPE_CHECKING` is still needed — deferred evaluation helps with name resolution in annotations but does not execute the imports at runtime.
 
 ## TypeVar, ParamSpec, TypeVarTuple
 
 Use PEP 695 `type` parameter syntax:
 
 ```python
-# Generic function
 def first[T](items: list[T]) -> T:
     return items[0]
 
 
-# Generic class
 class Stack[T]:
     def push(self, item: T) -> None: ...
     def pop(self) -> T: ...
 
 
-# Decorator that preserves the wrapped function's signature
+# Decorator preserving wrapped function's signature
 import functools
 from typing import Callable
 
@@ -68,11 +51,11 @@ def retry[**P, T](func: Callable[P, T]) -> Callable[P, T]:
     return wrapper
 ```
 
-For explicit variance (covariant/contravariant), use the legacy `TypeVar("T_co", covariant=True)` form — PEP 695 syntax infers variance automatically from usage.
+For explicit variance (covariant/contravariant), use the legacy `TypeVar("T_co", covariant=True)` form — PEP 695 infers variance automatically.
 
 ## Protocols
 
-Use protocols for structural (duck) typing instead of ABCs. They work without inheritance.
+Use protocols for structural (duck) typing instead of ABCs:
 
 ```python
 from typing import Protocol, runtime_checkable
@@ -82,12 +65,7 @@ class Closeable(Protocol):
     def close(self) -> None: ...
 
 
-class Readable(Protocol):
-    def read(self, n: int = -1) -> bytes: ...
-
-
-# runtime_checkable allows isinstance() checks, but only for method presence
-@runtime_checkable
+@runtime_checkable  # allows isinstance() checks, but only for method presence
 class Saveable(Protocol):
     def save(self) -> None: ...
 
@@ -96,11 +74,10 @@ def flush_and_close(resource: Closeable) -> None:
     resource.close()
 
 
-# Any object with a .close() method works - no inheritance needed
-flush_and_close(open("file.txt"))  # fine
+flush_and_close(open("file.txt"))  # any object with .close() works
 ```
 
-Protocols with generics (variance is inferred by the type checker):
+Protocols with generics:
 
 ```python
 from typing import Iterator, Protocol
@@ -113,7 +90,7 @@ class Container[T](Protocol):
 
 ## Overloads
 
-Use `@overload` when a function returns different types based on argument values or types. The overloads are type-checker-only; the actual implementation is undecorated and uses a broader signature.
+Use `@overload` when return type depends on argument values/types:
 
 ```python
 from typing import overload
@@ -129,12 +106,9 @@ def parse(value: str | None) -> int | None:
     if value is None:
         return None
     return int(value)
-
-
-# Type checker knows: parse("42") -> int, parse(None) -> None
 ```
 
-Common use case - different return types based on a flag:
+Common use case — different return types based on a flag:
 
 ```python
 @overload
@@ -150,19 +124,7 @@ def get_items(*, as_queryset: bool = False) -> QuerySet[Item] | list[Item]:
 
 ## Literal and TypeAlias
 
-```python
-from typing import Literal, TypeAlias
-
-# Restrict to specific values
-Status: TypeAlias = Literal["draft", "published", "archived"]
-
-def set_status(status: Status) -> None: ...
-
-# Type aliases for complex types
-JsonValue: TypeAlias = str | int | float | bool | None | list["JsonValue"] | dict[str, "JsonValue"]
-```
-
-Prefer the `type` statement over `TypeAlias`:
+Prefer the `type` statement:
 
 ```python
 type Status = Literal["draft", "published", "archived"]
@@ -170,8 +132,6 @@ type JsonValue = str | int | float | bool | None | list[JsonValue] | dict[str, J
 ```
 
 ## TypeGuard
-
-Use `TypeGuard` to narrow types inside conditionals:
 
 ```python
 from typing import TypeGuard
@@ -183,8 +143,7 @@ def is_string_list(val: list[object]) -> TypeGuard[list[str]]:
 
 def process(items: list[object]) -> None:
     if is_string_list(items):
-        # items is list[str] here
-        print(items[0].upper())
+        print(items[0].upper())  # items is list[str] here
 ```
 
 ## Callable Typing
@@ -192,16 +151,8 @@ def process(items: list[object]) -> None:
 ```python
 from typing import Callable
 
-# Simple: Callable[[arg_types], return_type]
 Handler = Callable[[int, str], bool]
-
-# No args
 Callback = Callable[[], None]
-
-# Variadic (use ParamSpec for exact signature preservation)
-from typing import ParamSpec
-P = ParamSpec("P")
-Decorator = Callable[[Callable[P, T]], Callable[P, T]]
 
 # Protocol is clearer for complex callables
 class ClickHandler(Protocol):
@@ -212,7 +163,7 @@ class ClickHandler(Protocol):
 
 ### QuerySet and Manager
 
-Class base expressions (e.g. `QuerySet["Article"]`) are evaluated eagerly even in Python 3.14 - string quotes are still required there when the class is a forward reference. Method annotation forward references don't need quotes in Python 3.14+.
+Class base expressions (e.g. `QuerySet["Article"]`) are evaluated eagerly even in 3.14 — string quotes are still required there for forward references.
 
 ```python
 from django.db import models
@@ -220,51 +171,30 @@ from django.db.models import QuerySet
 
 
 class ArticleQuerySet(QuerySet["Article"]):  # base expr: quotes required
-    def published(self) -> ArticleQuerySet:  # annotation: no quotes needed (3.14+)
+    def published(self) -> ArticleQuerySet:
         return self.filter(status="published")
 
-    def by_author(self, author: Author) -> ArticleQuerySet:  # annotation: no quotes needed (3.14+)
+    def by_author(self, author: Author) -> ArticleQuerySet:
         return self.filter(author=author)
 
 
 class Article(models.Model):
-    objects: models.Manager["Article"] = ArticleQuerySet.as_manager()  # type: ignore[assignment]
+    objects: models.Manager["Article"] = ArticleQuerySet.as_manager()  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
     ...
-```
-
-For custom managers:
-
-```python
-from django.db import models
-
-
-class ArticleManager(models.Manager["Article"]):  # base expr: quotes required
-    def get_queryset(self) -> QuerySet[Article]:  # annotation: no quotes needed (3.14+)
-        return super().get_queryset().select_related("author")
-
-    def published(self) -> QuerySet[Article]:  # annotation: no quotes needed (3.14+)
-        return self.get_queryset().filter(status="published")
-
-
-class Article(models.Model):
-    objects = ArticleManager()
 ```
 
 ### Model Field Types
 
-django-stubs maps model fields to Python types automatically. Key mappings:
+django-stubs maps model fields to Python types automatically:
 
 ```python
-from django.db import models
-
 class Article(models.Model):
-    title: str          # CharField, TextField -> str (via django-stubs)
+    title: str          # CharField, TextField -> str
     count: int          # IntegerField -> int
     price: Decimal      # DecimalField -> Decimal
     created_at: datetime  # DateTimeField -> datetime
     author: Author      # ForeignKey -> instance type
     author_id: int      # ForeignKey -> _id suffix is int
-    tags: ManyToManyField  # ManyToManyField[Tag, Tag]
 ```
 
 ### TypedDict for View Context / API Dicts
@@ -290,8 +220,10 @@ def article_detail(request: HttpRequest, pk: int) -> HttpResponse:
 
 ## mypy vs ty
 
-**mypy**: mature, widely used, slower, rich plugin ecosystem including django-stubs.
-**ty**: Astral's type checker (10-60x faster than mypy). Reached beta in December 2025; stable release planned 2026. Django support is ongoing - if you rely on django-stubs, stick with mypy until ty's Django support stabilises.
+We run **both** type checkers. They catch different things:
+
+- **mypy**: mature, slower, rich plugin ecosystem including django-stubs. Best Django support today.
+- **ty**: Astral's type checker (10-60x faster). Django support ongoing but improving rapidly.
 
 ### mypy Configuration (pyproject.toml)
 
@@ -304,98 +236,72 @@ plugins = ["mypy_django_plugin.main"]
 [tool.django-stubs]
 django_settings_module = "myapp.settings"
 
-# Per-module overrides for third-party without stubs
 [[tool.mypy.overrides]]
 module = ["boto3.*", "botocore.*"]
 ignore_missing_imports = true
-```
 
-`strict = true` enables: `--disallow-untyped-defs`, `--disallow-any-generics`, `--warn-return-any`, `--no-implicit-optional`, and more.
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false  # relax in tests
+```
 
 ### ty Configuration
 
 ```toml
 [tool.ty]
 python-version = "3.14"
+
+[tool.ty.analysis]
+# Don't respect mypy's `# type: ignore` comments — ty only checks `# ty: ignore`
+respect-type-ignore-comments = false
 ```
 
-ty is strict by default and does not support mypy-style plugins - Django support is built in directly rather than via django-stubs. Key behavioral difference: ty treats missing return paths as errors where mypy with `--strict` may not, and ty resolves overloads differently.
-
-### Common mypy Flags to Know
-
-```toml
-[[tool.mypy.overrides]]
-module = "tests.*"
-disallow_untyped_defs = false  # relax in tests
-```
-
-```python
-x = some_untyped_lib_call()  # type: ignore[no-untyped-call]
-reveal_type(x)  # mypy prints inferred type during check - remove before committing
-```
+ty is strict by default and does not support mypy-style plugins — Django support is built in directly. `respect-type-ignore-comments = false` is essential when running both checkers; without it, ty silently swallows errors that mypy's `# type: ignore` was suppressing.
 
 ## Common Pitfalls
 
-### Forward References in Annotations
+### Forward References
 
-In Python 3.14+, annotations are deferred - forward references just work:
-
-```python
-# Python 3.14+: fine as-is, no quoting or future import needed
-class Node:
-    def next(self) -> Node: ...
-```
-
-On Python 3.12-3.13, method annotations are still eagerly evaluated at class definition time, so `Node` isn't defined yet:
+Annotations are deferred in 3.14 — forward references just work. One exception: class base expressions are always evaluated eagerly, so quotes are still required there:
 
 ```python
-# Python 3.12-3.13: NameError at runtime without one of these fixes
-
-# Option 1: quote it
 class Node:
-    def next(self) -> "Node": ...
+    def next(self) -> Node: ...  # fine
 
-# Option 2: add future import (deprecated in 3.14, remove when upgrading)
-from __future__ import annotations
-
-class Node:
-    def next(self) -> Node: ...
+class ArticleQuerySet(QuerySet["Article"]):  # base expr: must quote
+    ...
 ```
 
-Note: class base expressions (e.g. `class Foo(Bar["Baz"])`) are evaluated eagerly in all Python versions, including 3.14. String quotes are still required there when `Baz` is a forward reference.
+### `annotationlib`
 
-### Inspecting Annotations at Runtime (`annotationlib`)
-
-Python 3.14 adds `annotationlib` for safely evaluating deferred annotations:
+Use `annotationlib` instead of `typing.get_type_hints()` for inspecting annotations at runtime:
 
 ```python
 import annotationlib
 
-# Get annotations with different evaluation strategies
-annotationlib.get_annotations(MyClass, format=annotationlib.Format.FORWARDREF)  # returns ForwardRef objects for unresolvable names
-annotationlib.get_annotations(MyClass, format=annotationlib.Format.STRING)      # returns string representations
-annotationlib.get_annotations(MyClass, format=annotationlib.Format.VALUE)       # evaluates fully (raises NameError on failure)
+annotationlib.get_annotations(MyClass, format=annotationlib.Format.FORWARDREF)
+annotationlib.get_annotations(MyClass, format=annotationlib.Format.STRING)
+annotationlib.get_annotations(MyClass, format=annotationlib.Format.VALUE)
 ```
-
-Use `annotationlib` instead of `typing.get_type_hints()` for new code on Python 3.14+. It handles deferred annotations correctly and gives control over evaluation strategy.
 
 ### Circular Imports
 
 ```python
-# models.py imports from services.py; services.py imports from models.py -> circular
-# Fix: put the import inside TYPE_CHECKING
-
-# services.py
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from .models import Article  # only imported during type checking, not at runtime
+    from .models import Article  # only imported during type checking
 ```
 
-### `type: ignore` Abuse
+### Suppression Comments
 
-Prefer fixing the underlying issue. Use `type: ignore` only for:
+We use `# type: ignore[code]` for mypy and `# ty: ignore[code]` for ty. They are independent — each checker only reads its own comments.
+
+Prefer fixing the underlying issue. Use suppression comments only for:
 - Stubs not available for third-party package (`# type: ignore[import-untyped]`)
-- Known false positive in the type checker
+- Known false positive in the specific type checker
 - Django ORM `objects` reassignment with custom manager (`# type: ignore[assignment]`)
 
-Always include the specific error code, not bare `# type: ignore`.
+Rules:
+- Always include the specific error code — never bare `# type: ignore` or `# ty: ignore`
+- Use the comment for the checker that produces the error. If both complain, use both: `# type: ignore[assignment]  # ty: ignore[invalid-assignment]`
+- Error code names differ between checkers (e.g. mypy's `no-untyped-call` vs ty's `unresolved-reference`)
