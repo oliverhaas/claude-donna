@@ -100,6 +100,7 @@ ${CLAUDE_PLUGIN_ROOT}/skills/django-factories/SKILL.md
 ${CLAUDE_PLUGIN_ROOT}/skills/tests-celery/SKILL.md
 ${CLAUDE_PLUGIN_ROOT}/skills/tests-view/SKILL.md
 ${CLAUDE_PLUGIN_ROOT}/skills/tests-playwright-e2e/SKILL.md
+${CLAUDE_PLUGIN_ROOT}/skills/tests-screenshot/SKILL.md
 ${CLAUDE_PLUGIN_ROOT}/skills/django-tdd/SKILL.md
 
 ### Pass 11: Logging & API Clients
