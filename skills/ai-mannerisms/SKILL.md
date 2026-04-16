@@ -80,6 +80,10 @@ Avoid in commit messages and PRs:
 
 AI tends to put imports inside function bodies defensively, even when there's no circular import risk. Use top-level imports unless there's a concrete reason not to (circular import, heavy module you want to defer, `TYPE_CHECKING` guard).
 
-## 11. Passive voice overuse
+## 11. Writing from the AI's perspective
+
+When asked to write text (PR descriptions, docs, reports, emails), write from the user's perspective as if they wrote it themselves. Never use "I analyzed...", "I implemented...", "As an AI..." or similar. The output should read like the user authored it.
+
+## 12. Passive voice overuse
 
 "The user is redirected" vs "Redirect the user". Prefer active voice and imperative mood in docs and comments. Passive voice is fine occasionally but AI defaults to it excessively.
