@@ -116,6 +116,9 @@ ${CLAUDE_PLUGIN_ROOT}/skills/daisyui/SKILL.md
 
 ## Phase 3: Cross-Cutting Checks
 
+### AI Mannerisms
+${CLAUDE_PLUGIN_ROOT}/skills/ai-mannerisms/SKILL.md
+
 ### Unused Code Detection
 When code is removed or refactored in the diff, check if it leaves behind unused code:
 - If a function call is removed, check if that function is still used elsewhere
