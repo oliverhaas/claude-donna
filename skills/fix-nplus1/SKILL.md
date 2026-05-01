@@ -17,7 +17,7 @@ Clues if you don't have a specific spot:
 - High query counts in logs or APM (Datadog, Sentry, debug-toolbar)
 - A slow page or API endpoint
 
-Fix at the **entry point** (view, task, management command). Helpers should assume their inputs are already prefetched, not paper over the issue with late prefetches.
+Fix at the **entry point** (view, task, management command). Services and helpers can fill in missing prefetches with `prefetch_related_objects()` (one bulk query, not N+1), but they shouldn't lazy-load in loops.
 
 ## 1. Identify common N+1 sources
 
@@ -72,11 +72,17 @@ for order in orders:
 
 ### Nested relations: chain or `Prefetch(queryset=...)`
 
+Default to `prefetch_related` at every level. With cachalot, the inner relation is often a cache hit; a JOIN can't benefit from that.
+
 ```python
+# Simple chain
+Product.objects.prefetch_related("variants__warehouse")
+
+# Custom inner queryset (e.g. filtering or ordering)
 Product.objects.prefetch_related(
     Prefetch(
         "variants",
-        queryset=Variant.objects.select_related("warehouse"),
+        queryset=Variant.objects.prefetch_related("warehouse"),
     ),
 )
 ```
@@ -122,7 +128,7 @@ Order.objects.annotate(customer_name=F("customer__name")).values("id", "customer
 
 ### Already-fetched instances: `prefetch_related_objects()`
 
-Use this only when you can't add prefetches at the entry point (e.g., instances arrive from elsewhere). It skips relations already loaded:
+Use this in services or helpers that need additional relations beyond what the caller prefetched. It skips relations already loaded, so it's a single bulk query per missing relation, not N+1. `django-nplus1` still attributes any remaining N+1 to the entry point, so this doesn't mask the source.
 
 ```python
 from django.db.models import prefetch_related_objects
@@ -130,7 +136,7 @@ from django.db.models import prefetch_related_objects
 prefetch_related_objects(
     orders,
     "items",                  # already loaded, skipped
-    "items__product__brand",  # missing, fetched
+    "items__product__brand",  # missing, fetched in one query
 )
 ```
 
@@ -146,31 +152,22 @@ for order in Order.objects.prefetch_related("items").iterator(chunk_size=1000):
 
 ## 3. Verify
 
-### `django-nplus1` in tests
+### `django-nplus1` via middleware and celery integration
 
-If the project has the autouse `nplus1_guard` fixture, every test fails on lazy relation access. Run the relevant tests:
+The clean setup: enable `django-nplus1`'s **middleware** for HTTP requests and its **celery integration** for tasks in test settings, configured to raise. This catches N+1 only when it happens inside a real request or task lifecycle, which is exactly the scope you care about.
+
+Why this beats an autouse fixture:
+- Test setup queries (factories, fixture data) happen outside the entry-point lifecycle, so they don't trigger false positives. No `nplus1_allow` markers needed.
+- Helper-in-isolation unit tests don't hit middleware or celery, so they don't need suppression either.
+- Integration tests that go through the test client (or call a celery task) get N+1 detection automatically.
+
+In practice this means **you rarely if ever need `nplus1_allow` or autouse guards.** Just run the test:
 
 ```bash
 uv run pytest path/to/test.py -v
 ```
 
-Suppress detection only when the test isn't testing the entry point:
-
-```python
-@pytest.mark.nplus1_allow
-def test_helper_in_isolation():
-    ...
-
-# Or scoped:
-from myproject.testing import nplus1_allow
-
-def test_x(order):
-    with nplus1_allow(reason="setup, not the SUT"):
-        _ = order.items.first()
-    result = process(order)  # detection active here
-```
-
-If the project uses `NPLUSONE_WHITELIST`: **remove entries as you fix them, do not add new ones.**
+If the project uses a whitelist of known violations: **remove entries as you fix them, never add new ones.**
 
 ### Ad-hoc query counting
 
