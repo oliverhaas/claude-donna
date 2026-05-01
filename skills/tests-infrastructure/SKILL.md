@@ -238,7 +238,7 @@ Depends on `redis_container` to ensure Valkey is available before clearing.
 Phase-aware: only active during the test body (call phase), not during fixture setup/teardown where factory creation triggers expected queries.
 
 ```python
-# fixtures/nplusone.py
+# fixtures/nplus1.py
 import pytest
 from threading import local
 

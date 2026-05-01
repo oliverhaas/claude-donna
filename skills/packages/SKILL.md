@@ -123,7 +123,6 @@ user-invocable: false
 - `djlint` - HTML template linter and formatter
 - `pre-commit` - git hook manager for linters and formatters
 - `commitizen` - conventional commit enforcement
-- `nplusone` - detect N+1 queries in tests
 
 ## Debugging
 
