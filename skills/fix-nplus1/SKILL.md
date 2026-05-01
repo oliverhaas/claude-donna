@@ -154,14 +154,7 @@ for order in Order.objects.prefetch_related("items").iterator(chunk_size=1000):
 
 ### `django-nplus1` via middleware and celery integration
 
-The clean setup: enable `django-nplus1`'s **middleware** for HTTP requests and its **celery integration** for tasks in test settings, configured to raise. This catches N+1 only when it happens inside a real request or task lifecycle, which is exactly the scope you care about.
-
-Why this beats an autouse fixture:
-- Test setup queries (factories, fixture data) happen outside the entry-point lifecycle, so they don't trigger false positives. No `nplus1_allow` markers needed.
-- Helper-in-isolation unit tests don't hit middleware or celery, so they don't need suppression either.
-- Integration tests that go through the test client (or call a celery task) get N+1 detection automatically.
-
-In practice this means **you rarely if ever need `nplus1_allow` or autouse guards.** Just run the test:
+Enable `django-nplus1`'s **middleware** for HTTP requests and its **celery integration** for tasks in test settings, configured to raise. Detection is scoped to the entry-point lifecycle, so factory and fixture queries are ignored and helper unit tests aren't affected. `nplus1_allow` markers should rarely be needed.
 
 ```bash
 uv run pytest path/to/test.py -v
