@@ -20,6 +20,7 @@ Ask the user:
 - Is this a Django package? (affects dependencies, classifiers, test settings)
 - Initial Python version support? (default: `>=3.12`)
 - Initial Django version support? (default: `>=5.2,<7` if Django package)
+- Native extension? (Cython, PyO3/Rust, or none) — if yes, see "Native Extensions" at the bottom for overrides on top of the standard scaffold
 
 ## Step 2: Create GitHub Repository
 
@@ -723,3 +724,150 @@ Tell the user these need to be done manually:
    - Create environment named `pypi`
 
 4. **Codecov** - https://codecov.io/gh/oliverhaas/{package-name}
+
+## Native Extensions (optional)
+
+Apply on top of the standard scaffold when the package ships compiled code. For authoring guidance (footguns, pure-mode patterns, `Bound` vs `Py`, free-threading), see the `cython` and `pyo3` skills.
+
+### Cython
+
+Replace the `[build-system]` block in `pyproject.toml`:
+
+```toml
+[build-system]
+requires = ["setuptools>=77", "cython>=3.2"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+{module_name} = ["py.typed", "*.pxd"]
+
+[tool.setuptools.exclude-package-data]
+{module_name} = ["*.c", "*.html"]
+```
+
+Add `setup.py` (setuptools won't read `ext_modules` from `pyproject.toml` yet):
+
+```python
+"""Build hook: cythonize sources into C extensions."""
+
+from Cython.Build import cythonize
+from setuptools import setup
+
+setup(
+    ext_modules=cythonize(
+        ["src/{module_name}/*.py"],
+        compiler_directives={
+            "language_level": "3str",
+            "freethreading_compatible": True,
+        },
+    ),
+)
+```
+
+Add `cython==3.2.4` to the `dev` dependency-group.
+
+Add a cibuildwheel block (free-threaded cp314t alongside cp314):
+
+```toml
+[tool.cibuildwheel]
+build = ["cp314-*", "cp314t-*"]
+enable = ["cpython-freethreading"]
+build-frontend = "build[uv]"
+build-verbosity = 1
+test-command = "python -c \"import {module_name}\""
+
+[tool.cibuildwheel.linux]
+archs = ["x86_64"]
+
+[tool.cibuildwheel.macos]
+archs = ["arm64"]
+```
+
+For Django packages where importing the module triggers app-loading, replace `test-command` with a `settings.configure(INSTALLED_APPS=[]); django.setup()` preamble.
+
+`.gitignore` additions:
+
+```
+{module_name}/*.so
+{module_name}/*.c
+{module_name}/*.html
+```
+
+CI workflow note: setuptools editable installs do not auto-rebuild on `.py`/`.pyx` changes. The `test` job needs an explicit `uv pip install -e .` step after `uv sync` if tests import the compiled module.
+
+### PyO3 / Rust
+
+Two layouts. Pick the second only when the native code is an optional accelerator over a working pure-Python fallback.
+
+**Single-package (default):** maturin builds the whole package.
+
+```toml
+[build-system]
+requires = ["maturin>=1.7,<2.0"]
+build-backend = "maturin"
+
+[tool.maturin]
+module-name = "{module_name}._native"
+features = ["pyo3/extension-module"]
+python-source = "python"
+```
+
+Layout: `python/{module_name}/__init__.py` for the Python facade, `Cargo.toml` and `src/lib.rs` at the repo root.
+
+`Cargo.toml`:
+
+```toml
+[package]
+name = "{package-name}"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+name = "_native"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.28", features = ["extension-module"] }
+
+[profile.release]
+lto = true
+strip = true
+```
+
+**Split-distribution (cachex pattern):** pure-Python parent (hatchling) plus an optional native sibling (maturin) under `crates/<crate-name>/`. Wire with `[tool.uv.workspace] members = ["crates/*"]` and `[tool.uv.sources] <crate-name> = { workspace = true }` so `uv sync` builds the crate locally. Stitch namespaces by setting `module-name = "{module_name}._driver"` in the crate's `[tool.maturin]` and adding `__path__ = extend_path(__path__, __name__)` to the parent `__init__.py`. See `django-cachex` for a working example.
+
+Add a cibuildwheel block:
+
+```toml
+[tool.cibuildwheel]
+build = ["cp314-*", "cp314t-*"]
+enable = ["cpython-freethreading"]
+build-verbosity = 1
+
+[tool.cibuildwheel.linux]
+archs = ["x86_64", "aarch64"]
+before-all = "curl --proto =https --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal"
+environment = { PATH = "$HOME/.cargo/bin:$PATH" }
+
+[tool.cibuildwheel.macos]
+archs = ["arm64"]
+
+[tool.cibuildwheel.windows]
+archs = ["AMD64"]
+```
+
+The `before-all` plus `environment.PATH` pair is required: manylinux containers don't ship Rust, and without `PATH` cibuildwheel can't find `cargo` after the install. macOS and Windows runners come with rustup preinstalled. For native aarch64 (no QEMU), use `runs-on: ubuntu-24.04-arm` in the workflow matrix instead of the default Linux runner.
+
+`.gitignore` additions:
+
+```
+target/
+*.so
+__pycache__/
+```
+
+Add a smoke-test job that imports the wheel before publishing; for the split-distribution pattern, also add a smoke-test that asserts the pure path works *without* the native extension installed.

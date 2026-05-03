@@ -127,3 +127,13 @@ user-invocable: false
 ## Debugging
 
 - `debugpy` - Python debugger for VS Code
+
+## Native Extensions
+
+- `cython` - Python-to-C compiler, prefer pure-Python mode for new code (see `cython` skill)
+- `setuptools` + `Cython.Build.cythonize` - build backend for Cython packages
+- `maturin` - build backend for Rust/PyO3 packages, default choice for new code
+- `pyo3` - Rust bindings for Python (see `pyo3` skill)
+- `pyo3-stub-gen` - generate `.pyi` stubs from PyO3 annotations, gate drift in CI
+- `cibuildwheel` - cross-platform wheel builder, used for both Cython and PyO3
+- `setuptools-rust` - only when bolting Rust onto an existing setuptools project
