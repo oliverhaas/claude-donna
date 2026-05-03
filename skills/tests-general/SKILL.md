@@ -38,9 +38,8 @@ def test_cache_invalidation_on_save(live_server):
 def test_widget_default_state(widget_page, assert_screenshot):
     ...
 
-@pytest.mark.benchmark
 def test_bulk_import_performance(db, benchmark):
-    ...
+    benchmark(Item.objects.bulk_create, items)
 ```
 
 Register markers in `pyproject.toml`:
@@ -51,18 +50,10 @@ markers = [
     "unit: fast, isolated unit tests",
     "e2e: end-to-end browser/integration tests",
     "screenshot: visual regression tests with Playwright snapshots",
-    "benchmark: performance benchmarks, excluded from CI by default",
 ]
 ```
 
-Screenshot and benchmark tests are excluded from default CI runs (`-m "not screenshot and not benchmark"`). See `tests-screenshot` skill for visual regression patterns.
-
-**Benchmark tests** can live in their own files (`test_benchmarks_*.py` or `benchmarks/`) since they are long-running and only run manually:
-
-```bash
-uv run pytest -m benchmark -v                    # run all benchmarks
-uv run pytest tests/benchmarks/ -v --no-header   # run benchmark directory
-```
+Screenshot tests are excluded from default CI runs (`-m "not screenshot"`); see `tests-screenshot` skill. Benchmarks use pytest-benchmark — the `benchmark` marker is registered automatically and tests using the `benchmark` fixture are auto-marked, so gate them with `--benchmark-skip` instead of a marker filter. See `tests-benchmarks` skill for patterns and selection flags.
 
 ## Test Functions
 
