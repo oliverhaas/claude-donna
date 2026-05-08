@@ -1,50 +1,93 @@
 ---
 name: tests-benchmarks
-description: Performance benchmarks with pytest-benchmark. Use when writing or running performance tests, comparing implementations, or gating timing-sensitive tests behind a flag.
+description: Performance benchmarks with pytest-codspeed (local mode). Use when writing or running performance tests, comparing implementations, or gating timing-sensitive tests behind a flag.
 user-invocable: false
 ---
 
 # Performance Benchmarks
 
-Use `pytest-benchmark` for any test that measures wall-clock performance. The plugin handles warmup, repeats, and statistics (min/max/mean/stddev), and emits JSON for trend tracking.
+Use `pytest-codspeed` for any test that measures wall-clock performance. The plugin handles warmup, repeats, and statistics, and prints a results table to the terminal. Trend tracking across runs is currently external — capture stdout if you need a record, or opt into the CodSpeed cloud platform later.
 
 ## Basic Pattern
 
+Two API styles, both via the `benchmark` fixture / `@pytest.mark.benchmark` marker:
+
 ```python
+import pytest
+
+# Marker: measures the entire test function
+@pytest.mark.benchmark
+def test_bulk_import(db):
+    items = [ItemFactory.build() for _ in range(1_000)]
+    Item.objects.bulk_create(items)
+
+# Fixture: measures only the wrapped call
+@pytest.mark.benchmark
 def test_bulk_import_throughput(db, benchmark):
     items = [ItemFactory.build() for _ in range(1_000)]
     benchmark(Item.objects.bulk_create, items)
 ```
 
-The `benchmark` fixture runs the callable repeatedly and prints a timing table. Tests using the fixture are auto-marked with `@pytest.mark.benchmark`, so selection flags work without an explicit decorator.
+The marker and fixture are independent. Apply `@pytest.mark.benchmark` explicitly even when using the fixture — the fixture does not auto-mark, and the marker is what `-m benchmark` and the default-CI filter rely on.
 
 ## Per-test Config
 
-Tune rounds, timing, warmup, and grouping via the marker:
+The marker takes no arguments. Per-test tuning lives on the fixture's `pedantic` mode:
 
 ```python
-@pytest.mark.benchmark(
-    group="zadd",
-    min_rounds=100,
-    max_time=2.0,
-    warmup=True,
-)
-def test_zadd_default(benchmark, cache):
-    benchmark(cache.zadd, "k", {"m": 1})
-
-@pytest.mark.benchmark(group="zadd")
-def test_zadd_pipelined(benchmark, cache):
-    benchmark(pipelined_zadd, cache, "k", {"m": 1})
+@pytest.mark.benchmark
+def test_zadd(benchmark, cache):
+    benchmark.pedantic(
+        cache.zadd,
+        args=("k", {"m": 1}),
+        rounds=100,
+        iterations=10,
+        warmup_rounds=5,
+    )
 ```
 
-`group=` is the most useful argument: it bundles related benchmarks into a sub-table with relative comparisons (`1.00x` vs `3.42x slower`). Use it when comparing implementations of the same operation.
+`setup` returns `(args, kwargs)` for dynamic per-round inputs:
+
+```python
+def setup():
+    return (OrderFactory.create_batch(100),), {}
+
+benchmark.pedantic(process_orders, setup=setup, rounds=5, iterations=3)
+```
+
+**No grouping.** pytest-codspeed has no `group=` equivalent in local mode — A/B comparisons are read row-by-row in the terminal table, with no relative-speedup column. Split the two implementations into separate test functions, run them in the same session, and eyeball.
 
 ## Selection
 
 ```bash
-uv run pytest --benchmark-only      # run only benchmarks
-uv run pytest --benchmark-skip      # skip them
-uv run pytest --benchmark-disable   # run them but no timing (smoke check)
+uv run pytest -m benchmark --codspeed       # measure benchmarks
+uv run pytest -m benchmark                  # smoke check: run them without measurement
+uv run pytest -m "not benchmark"            # skip benchmarks (default CI)
+```
+
+The middle form is the equivalent of pytest-benchmark's `--benchmark-disable`: marked tests run as ordinary pytest tests when `--codspeed` is absent. Useful to confirm benchmarks haven't bit-rotted without paying the measurement cost.
+
+## Measurement Modes
+
+`--codspeed-mode` defaults to `auto`, which picks `walltime` locally and the appropriate instrument when running inside CodSpeed CI. For routine local use, walltime is what you'll get.
+
+| Mode | When | Requires |
+|---|---|---|
+| `auto` | Default. Picks `walltime` locally. | Nothing |
+| `walltime` | Fast feedback, cross-platform. | Nothing |
+| `simulation` | Deterministic CPU-cycle counts; use for noise-sensitive comparisons. | Linux + valgrind |
+| `memory` | Heap allocation tracking. | Linux + valgrind |
+
+```bash
+uv run pytest -m benchmark --codspeed                              # walltime
+uv run pytest -m benchmark --codspeed --codspeed-mode simulation   # cycles
+uv run pytest -m benchmark --codspeed --codspeed-warmup-time 1 --codspeed-max-time 5
+```
+
+Capture output as a poor-man's history when needed:
+
+```bash
+uv run pytest -m benchmark --codspeed | tee benchmarks/$(date +%Y-%m-%d).log
 ```
 
 ## Gating in CI
@@ -53,16 +96,25 @@ Skip benchmarks by default so normal `pytest` and CI runs stay fast:
 
 ```toml
 [tool.pytest.ini_options]
-addopts = "--benchmark-skip"
+addopts = "-m 'not screenshot and not benchmark'"
+markers = [
+    "benchmark: pytest-codspeed performance benchmarks, run with --codspeed",
+]
 ```
 
-Run them explicitly with `pytest --benchmark-only` when you want to measure.
-
-Don't manually register a `benchmark` marker in `pyproject.toml` — pytest-benchmark registers it on install.
+Run them explicitly with `pytest -m benchmark --codspeed` when you want to measure. Register the marker explicitly even though pytest-codspeed registers it on install — the entry documents intent and matches the convention in `tests-general`.
 
 ## File Layout
 
-Benchmarks can live alongside regular tests, but for long-running suites prefer their own files (`test_benchmarks_*.py`) or directory (`tests/benchmarks/`). Auto-marking from the fixture means `--benchmark-only` and `--benchmark-skip` work either way.
+Benchmarks live in the same `test_<feature>.py` file as the rest of that feature's tests — one module per feature, distinguish test types by marker. Don't split benchmarks into a separate `tests/benchmarks/` directory or `test_benchmarks_*.py` file; the marker is what the selection flags filter on, and keeping a feature's tests together makes them easy to find and run as a unit.
+
+Always apply `@pytest.mark.benchmark` explicitly — the fixture does not auto-mark, and the marker is what the default-CI exclusion and `-m benchmark` rely on.
+
+## Caveats
+
+- The `benchmark` fixture can be called only once per test function. Split A/B comparisons into separate test functions.
+- `simulation` and `memory` modes require valgrind and only work on Linux. macOS dev machines are walltime-only.
+- Walltime is non-deterministic; expect rel-stddev around a few percent on a quiet machine, more under load.
 
 ## When NOT to Use
 

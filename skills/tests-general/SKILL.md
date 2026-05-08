@@ -38,6 +38,7 @@ def test_cache_invalidation_on_save(live_server):
 def test_widget_default_state(widget_page, assert_screenshot):
     ...
 
+@pytest.mark.benchmark
 def test_bulk_import_performance(db, benchmark):
     benchmark(Item.objects.bulk_create, items)
 ```
@@ -50,10 +51,11 @@ markers = [
     "unit: fast, isolated unit tests",
     "e2e: end-to-end browser/integration tests",
     "screenshot: visual regression tests with Playwright snapshots",
+    "benchmark: pytest-codspeed performance benchmarks, run with --codspeed",
 ]
 ```
 
-Screenshot tests are excluded from default CI runs (`-m "not screenshot"`); see `tests-screenshot` skill. Benchmarks use pytest-benchmark — the `benchmark` marker is registered automatically and tests using the `benchmark` fixture are auto-marked, so gate them with `--benchmark-skip` instead of a marker filter. See `tests-benchmarks` skill for patterns and selection flags.
+Screenshot and benchmark tests are excluded from default CI runs (`-m "not screenshot and not benchmark"`); see `tests-screenshot` and `tests-benchmarks` skills. Benchmarks use pytest-codspeed in local mode — apply `@pytest.mark.benchmark` explicitly (the fixture does not auto-mark) and run with `pytest -m benchmark --codspeed`.
 
 ## Test Functions
 
