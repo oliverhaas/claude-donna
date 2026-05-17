@@ -1,6 +1,6 @@
 ---
 name: familiarize
-description: Use when starting work on a project or package to understand current state. Checks git state, branches, PRs, issues, plans, and merge readiness. Read-only orientation, takes no action.
+description: Read-only orientation to a project's current state. Use when starting work on a repo, when the user asks about "active repos", "what I'm working on", "current state", or before proposing a "library migration", "upgrade to X", or anything that depends on what version, branch, or PR set already exists. Checks git state, branches, PRs, issues, plans, and merge readiness without taking any action.
 user-invocable: true
 argument-hint: "[repository-path]"
 ---

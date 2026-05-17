@@ -8,6 +8,20 @@ user-invocable: false
 
 Authoring guide for PyO3 0.23+ Rust extensions. For scaffolding a new package with a Rust extension (maturin, cibuildwheel, cargo profile, gitignore), see `package-init`.
 
+## Check the Rust crate's typed API first
+
+Before wrapping a Rust crate by calling `call_method` / manual command dispatch from Python, look at the crate's typed surface. Crates like `redis` (TypedCommands), `sqlx`, `tonic`, etc. expose strongly-typed methods that map cleanly to PyO3 wrappers. Using them gives you the crate's type checks and panics-as-errors for free.
+
+```rust
+// Wrong: dynamic dispatch by string, throws away every type guarantee
+conn.send_packed_command(&cmd("HSET").arg(key).arg(field).arg(value))?;
+
+// Right: typed command surface
+conn.hset(key, field, value)?;
+```
+
+If the typed primitive is genuinely missing, then implement the manual wrapper. Verify the gap first. Same principle as `general-python` → "Check the Library First".
+
 ## Layout: thin bindings crate, fat Rust core
 
 Keep `#[pyfunction]`/`#[pyclass]` in one small bindings crate. Put real logic in plain Rust crates with no PyO3 dependency. Two payoffs: `cargo test` runs the core without an embedded interpreter, and the Python boundary stays small enough to audit.

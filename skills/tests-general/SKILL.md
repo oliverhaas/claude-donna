@@ -133,3 +133,66 @@ After writing new tests, verify stability:
 ```bash
 uv run pytest --flake-finder --flake-runs=20 path/to/test_file.py
 ```
+
+## Anti-Patterns
+
+### No `test_regression_*.py` files
+
+Regression tests live in the existing module that owns the subject under test, not in a dedicated `test_regression_widget.py` or `test_bugfixes.py`. The bug context belongs in the test name and a one-line comment; the test itself belongs with the rest of the tests for that feature.
+
+```python
+# Wrong: tests/test_regression_caching.py
+def test_regression_issue_142():
+    ...
+
+# Right: tests/test_caching.py (alongside the rest of the caching tests)
+def test_cache_invalidation_handles_concurrent_writes():
+    # Regression: GH-142. Two writes raced and clobbered the cache.
+    ...
+```
+
+### No `django.test.TestCase` in pytest-django projects
+
+If the project uses pytest-django (which all donna projects do), write function-based tests with fixtures. Never reach for `django.test.TestCase` or any class-based test pattern.
+
+```python
+# Wrong
+from django.test import TestCase
+
+class WidgetTests(TestCase):
+    def test_render(self):
+        ...
+
+# Right
+def test_widget_render(db):
+    ...
+```
+
+See `tests-infrastructure` for fixture wiring.
+
+### Threshold values must make semantic sense
+
+When fixturing a threshold-based detector or assertion, the threshold has to make the test meaningful. `threshold=1` on an N+1 detector fires on every single query, so the test passes trivially and proves nothing.
+
+```python
+# Wrong: threshold=1 fires on the first query, so any test setup triggers
+detector = NPlusOneDetector(threshold=1)
+
+# Right: realistic threshold that the bug actually crosses
+detector = NPlusOneDetector(threshold=10)
+```
+
+### Generic model names in feature-exploration tests
+
+Tests that exist to explore a feature (not to test a specific user-facing model) should use neutral names like `Parent`/`Child`, `Tag`/`Item`, `A`/`B`. Don't copy domain names from a feature spec, since that ties the test to the example and obscures what's being exercised.
+
+```python
+# Wrong (in a generic prefetch test)
+class Order(models.Model): ...
+class Customer(models.Model): ...
+
+# Right
+class Parent(models.Model): ...
+class Child(models.Model):
+    parent = models.ForeignKey(Parent, on_delete=models.CASCADE)
+```

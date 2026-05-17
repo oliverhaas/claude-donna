@@ -228,4 +228,58 @@ def filter_queryset(queryset: QuerySet, search: str) -> QuerySet:
 
 Don't write docstrings that just restate the function name. See also the `ai-mannerisms` skill on unsolicited docstrings.
 
+## Check the Library First
+
+Before writing a custom wrapper, workaround, or compatibility shim around a third-party library, grep the library for an existing setting, hook, or typed API. The primitive you'd build is usually already there.
+
+```bash
+# Check the installed source
+python -c "import some_lib; print(some_lib.__file__)"
+rg -l 'def ' "$(python -c 'import some_lib, os; print(os.path.dirname(some_lib.__file__))')"
+
+# Check docstrings / signatures for the operation you want
+python -c "import some_lib; help(some_lib.Client)"
+```
+
+If after a real look the primitive is genuinely missing, then write the wrapper. The cost of one search is much smaller than the cost of maintaining a parallel implementation that diverges from the upstream API a year later. Applies equally to Python libraries and to Rust crates wrapped via PyO3 (check the crate's typed-command surface before calling `call_method` manually).
+
+## Top-Level Imports by Default
+
+Imports go at the top of the module. Function-local imports are an explicit signal: "this is here to break a circular import" or "this is heavy and only used on one rare path". Don't reach for them defensively.
+
+```python
+# Wrong (no circular-import reason, no perf reason)
+def render_page(request):
+    from django.template.loader import render_to_string
+    return render_to_string("page.html")
+
+# Right
+from django.template.loader import render_to_string
+
+def render_page(request):
+    return render_to_string("page.html")
+```
+
+If a local import is needed, add a one-line comment explaining why.
+
+## Per-Model Imports in Tests
+
+In test files, import each model directly. Don't import the `models` module and access attributes off it.
+
+```python
+# Wrong
+from myapp import models
+
+def test_thing(db):
+    obj = models.Thing.objects.create(name="x")
+
+# Right
+from myapp.models import Thing
+
+def test_thing(db):
+    obj = Thing.objects.create(name="x")
+```
+
+Per-model imports keep the test's surface area visible at the top of the file and make grep-driven refactors trivial.
+
 ---

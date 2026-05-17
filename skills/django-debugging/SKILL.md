@@ -8,6 +8,17 @@ user-invocable: false
 
 Opinionated debugging playbook for the Django stack. Work through the relevant section top-to-bottom.
 
+## Reproduce Before Fixing
+
+Before proposing a fix, reproduce the failure. "I think this is the bug" without a reproduction is a guess.
+
+- **Test failure**: run the failing test and confirm the assertion the user reports actually fails. Don't trust the description.
+- **UI/layout bug with a localhost URL**: open it. Use the Playwright MCP server (`browser_navigate`, `browser_take_screenshot`) to load the page and capture the state. After the fix, reload and screenshot adjacent states to check for regressions.
+- **Server-side bug with a curl-able endpoint**: hit it. Confirm the response/error shape matches what the user reported.
+- **Race / flaky bug**: see `fix-flaky-test`. Never "fix" a race on a single passing run.
+
+A fix without a reproduction passes only because nothing is checking.
+
 ## Debug Tooling Setup
 
 ### django-debug-toolbar (local only)

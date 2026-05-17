@@ -28,6 +28,24 @@ PATTERNS: list[tuple[re.Pattern[str], str]] = [
         'Commit/PR self-reference detected ("This commit/PR/change ..."). '
         "Describe the change directly. See ai-mannerisms.",
     ),
+    (
+        re.compile(
+            r"\b(fails? silently|silently swallows?|dangerous|risky|unsafe|"
+            r"journey|voyage|adventure|speculated?|we assumed?)\b",
+            re.IGNORECASE,
+        ),
+        "Dramatic / value-laden phrasing detected (fails silently / dangerous / "
+        "journey / speculated). State what the code does, not the vibe. See ai-mannerisms #13.",
+    ),
+    (
+        re.compile(
+            r"\b(comprehensive|exhaustive|battle-tested|production-ready|"
+            r"robust|seamless|elegant|streamlined|enterprise-grade)\b",
+            re.IGNORECASE,
+        ),
+        "Aspirational adjective detected (comprehensive / robust / seamless / "
+        "elegant / production-ready). Marketing words, not engineering. See ai-mannerisms #4.",
+    ),
 ]
 
 

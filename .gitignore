@@ -62,6 +62,9 @@ node_modules/
 # Donna runtime data
 .donna/
 
+# Chat-log mining outputs (extracts, reports, aggregations)
+chatlog-mining/
+
 # OS
 .DS_Store
 Thumbs.db

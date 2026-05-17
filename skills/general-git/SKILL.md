@@ -106,5 +106,50 @@ If CI fails after a rebase, check the same job's status on `main` first — a fl
 - No additional CLI flags needed - the repository setting handles this automatically
 - Feature branch commits will be squashed into a single commit on merge
 
+## Fork-Aware Defaults
+
+If the working repo is a fork, every git/GitHub operation defaults to the fork (`origin`), not the upstream remote. Get this wrong and you push a feature branch to someone else's repo, or open a PR against upstream when you meant to open it against your own fork.
+
+Before pushing or creating a PR, check remotes:
+
+```bash
+git remote -v
+# origin     git@github.com:me/foo.git    (push)
+# upstream   git@github.com:owner/foo.git (push)
+```
+
+If both `origin` and `upstream` are configured, this is a fork. Then:
+
+```bash
+# Push to fork's branch (default)
+git push --set-upstream origin <branch>
+
+# Create PR against the fork's default branch. Pass --repo explicitly.
+gh pr create --repo me/foo --base main --title "..." --body "..."
+```
+
+Never call `gh pr create` without `--repo` in a fork. The default target is the upstream remote, which is almost always wrong.
+
+Same rule for issues:
+
+```bash
+gh issue create --repo me/foo --title "..." --body "..."
+```
+
+The `check_pr_target.py` hook prints the resolved target before any `gh pr create` runs. If it flags a fork mismatch, fix `--repo` before retrying.
+
+## Worktree Discipline
+
+When the user signals they're mid-work on something else before requesting new feature work, propose a worktree before starting. Use `superpowers:using-git-worktrees` or `git worktree add`.
+
+Within a session:
+
+- **Remember the base branch.** Once the user specifies a worktree base ("branch off `develop`"), that's the default for every subsequent worktree this session. Don't re-ask.
+- **"Drop the worktree" / "do it directly here" = leave immediately.** Switch back to the main working tree, no confirmation needed.
+- **Confirm worktree state in the completion summary.** When work is done in a worktree, the wrap-up message should include current worktree path, branch, and whether the worktree should be removed.
+
+## Code-Generated Files
+
+Before editing files in an unfamiliar repo, check whether any are code-generated (look for `# DO NOT EDIT`, `// @generated`, `*.pb.go`, OpenAPI schemas, Cython `.c` files next to `.pyx`, Rust `bindings.rs`). If so, edit the source and re-run the project's generation workflow. Don't hand-edit the output.
 
 ---

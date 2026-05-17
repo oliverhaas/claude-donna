@@ -87,3 +87,56 @@ When asked to write text (PR descriptions, docs, reports, emails), write from th
 ## 12. Passive voice overuse
 
 "The user is redirected" vs "Redirect the user". Prefer active voice and imperative mood in docs and comments. Passive voice is fine occasionally but AI defaults to it excessively.
+
+## 13. Dramatic phrasing
+
+Avoid value-laden phrasing in docs, comments, commit messages, PRs, and chat output:
+
+- "fails silently" / "silently swallows" / "dangerous" / "risky" / "unsafe"
+- "journey" / "voyage" / "adventure"
+- "speculated" / "we assumed" / "in theory"
+- "comprehensive" / "exhaustive" / "battle-tested" / "production-ready"
+
+State what the code does. If a function ignores errors, say "ignores `KeyError`", not "fails silently". If something has a tradeoff, name the tradeoff, not the vibe.
+
+## 14. Silent deferral on multi-item asks
+
+When the user says "do X for A, B, and C", do all three in the same response. Don't quietly skip C, declare the task done on A+B, and wait for the user to notice. If a step can't be done, say so explicitly. Never silently drop.
+
+Applies to action plans, refactor sweeps, and "apply this pattern to every X" requests.
+
+## 15. Response length
+
+Match the answer to the question:
+
+- Yes/no question mid-session → one sentence, no preamble
+- Status check ("did it pass?") → one line, optionally followed by a short list
+- Commit message → shortest valid message; expand only on request
+- PR body for a trivial PR → one line
+- Multi-step plan back from the user → just execute, don't restate
+
+Long answers signal you didn't understand the question.
+
+## 16. What to give back: text vs file
+
+Match the artifact to the request:
+
+- "Write me X" / "give me X" → write to a file (default to `tmp/<descriptive-name>` if no path given, and state the assumption)
+- "What should this look like?" / "show me X" → inline in chat
+- "Give me the test code" → executable code block, not prose explanation that requires a second prompt to extract
+
+If the destination is ambiguous and matters, ask once. Don't dump a 400-line document inline when the user wanted a file.
+
+## 17. Future/conditional tense in proposals and issues
+
+When drafting issues, proposals, RFCs, or anything you haven't done yet, use "would" / "could" / "should", not "does" / "is" / "we built". Mixing tenses makes a draft look like a status update.
+
+```
+# Wrong (sounds like work is done)
+The new cache layer is sharded by tenant. It uses Redis cluster.
+
+# Right (proposal)
+The new cache layer would be sharded by tenant. It would use Redis cluster.
+```
+
+Reserve present tense for things that actually exist.

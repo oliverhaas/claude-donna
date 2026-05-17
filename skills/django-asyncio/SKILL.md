@@ -622,6 +622,39 @@ async def render_view(request: HttpRequest) -> HttpResponse:
 
 **`asyncio.create_task` in views.** Fire-and-forget tasks created with `asyncio.create_task()` are tied to the request's event loop run. If the response returns before the task finishes, the task may be cancelled. For reliable background work, use Django's Tasks framework (`task.aenqueue()`) or Celery.
 
+## Async Protocols and ABCs
+
+When defining a `Protocol` or `ABC` that the rest of the codebase uses to swap sync and async implementations, declare both variants of every method. Otherwise async call sites end up casting or branching on the concrete type.
+
+```python
+from typing import Protocol
+
+class CacheBackend(Protocol):
+    def get(self, key: str) -> bytes | None: ...
+    def set(self, key: str, value: bytes) -> None: ...
+
+    async def aget(self, key: str) -> bytes | None: ...
+    async def aset(self, key: str, value: bytes) -> None: ...
+```
+
+Same for abstract base classes. Every concrete method needs an `a`-prefixed sibling.
+
+## In-Memory Async Backends Use Direct Sync Delegation
+
+For an in-memory backend (no real I/O: a dict, a list, an in-process queue), the `a`-prefixed methods should call the sync implementation directly. Don't reach for `sync_to_async`: there's no blocking I/O to offload, and the thread-pool round trip adds latency for no gain.
+
+```python
+class InMemoryCache:
+    def get(self, key: str) -> bytes | None:
+        return self._data.get(key)
+
+    async def aget(self, key: str) -> bytes | None:
+        # In-memory, no I/O to offload
+        return self.get(key)
+```
+
+Reserve `sync_to_async` for backends that actually block (DB, network, disk).
+
 ## ASGI Deployment
 
 Recommended servers: **granian**, **uvicorn**, **daphne**, **hypercorn**.
