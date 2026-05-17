@@ -30,6 +30,34 @@ logger.info("Order %s processed for user %s", order_id, user_id)
 logger.info(f"Order {order_id} processed for user {user_id}")
 ```
 
+## Structured Data via `extra=`
+
+Pass structured context as `extra=` rather than concatenating it into the message. The log aggregator (Better Stack, Datadog, etc.) indexes those keys as filterable fields:
+
+```python
+logger.info(
+    "Batch import completed: %d products processed", count,
+    extra={"merchant_id": merchant.id, "duration_ms": duration_ms},
+)
+```
+
+Keys in `extra=` must not collide with `LogRecord` attributes (`message`, `args`, `levelname`, etc.) — pick distinct names like `order_id` rather than `id`.
+
+## Request/Task-Wide Context
+
+For values that should appear on every log line in a request or background task (user id, request id, merchant id), set them once at the boundary instead of threading them through every call. Two common implementations:
+
+- **A `contextvars.ContextVar` helper + a logging `Filter`** that copies the current value onto each `LogRecord`. Bind in a middleware (request) or task `before_start` signal (Celery), reset on teardown.
+- **A `LoggingContextMiddleware` / custom Celery `Task` base class** that exposes a `set_context(**kwargs)` helper writing into the same `ContextVar`.
+
+```python
+# Pseudocode for a project-level helper
+set_context(merchant_id=merchant.id, order_id=order.id)
+logger.info("Processing order")  # automatically tagged with merchant_id, order_id
+```
+
+This avoids `extra=` repetition and guarantees per-record-attribution stays consistent across calls.
+
 ## Log Levels
 
 **CRITICAL**: System-critical failures requiring immediate attention. Triggers alerts.

@@ -17,6 +17,52 @@ def process_order(*, order_id: int, user: User | None = None) -> Order:
 
 Use `str | None` not `Optional[str]`. Always type-hint parameters and return values.
 
+## Early Returns and Guard Clauses
+
+Validate inputs at the top and return early. Nested `if`/`else` pyramids are harder to read and harder to extend:
+
+```python
+# Avoid
+def process_payment(*, amount: Decimal, user: User) -> bool:
+    if amount > 0:
+        if user.is_active:
+            # main logic deeply nested
+            return True
+        else:
+            raise ValueError("User is not active")
+    else:
+        raise ValueError("Amount must be positive")
+
+# Prefer
+def process_payment(*, amount: Decimal, user: User) -> bool:
+    if amount <= 0:
+        raise ValueError("Amount must be positive")
+    if not user.is_active:
+        raise ValueError("User is not active")
+    # main logic at the top indentation level
+    return True
+```
+
+## Specific Exceptions
+
+Catch the narrowest exception that the code can actually raise. `except Exception:` (let alone bare `except:`) swallows programming errors, `KeyboardInterrupt` semantics, and anything else that should have surfaced:
+
+```python
+# Avoid
+try:
+    user = User.objects.get(id=user_id)
+except Exception:
+    return None
+
+# Prefer
+try:
+    user = User.objects.get(id=user_id)
+except User.DoesNotExist:
+    return None
+```
+
+Only catch `Exception` at process or task boundaries where re-raising would crash the worker — and even then, log with `logger.exception(...)` before re-raising or returning.
+
 ## Closure Variable Capture in Loops
 
 Lambdas and closures inside loops capture variables by reference, not value.
@@ -139,5 +185,28 @@ DEFAULT_HEADERS = MappingProxyType({"Accept": "application/json"})
 ```
 
 Use `frozenset` for sets, `tuple` for sequences, `MappingProxyType` for dicts.
+
+## Docstrings
+
+Short docstrings (one to two sentences) for anything worth documenting at all. Skip them for internal helpers, obvious methods, and anything where the name + signature already says it. Reach for the Google-style `Args:`/`Returns:` block only when arguments need real prose:
+
+```python
+def calculate_total(items: list[Item]) -> Decimal:
+    """Sum the line total of all items, applying per-item discounts."""
+
+def filter_queryset(queryset: QuerySet, search: str) -> QuerySet:
+    """Filter queryset by a comma-separated search string.
+
+    Args:
+        queryset: The queryset to filter.
+        search: Search terms separated by commas; each token is matched
+            against `name__icontains` and `OR`ed together.
+
+    Returns:
+        The filtered queryset, ordered by the original ordering.
+    """
+```
+
+Don't write docstrings that just restate the function name. See also the `ai-mannerisms` skill on unsolicited docstrings.
 
 ---

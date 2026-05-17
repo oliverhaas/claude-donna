@@ -13,9 +13,11 @@ def test_order_processing_triggers_task(mock_base_task_delay):
     mock_base_task_delay.assert_called()
 
 def test_process_order_task_logic():
-    result = process_order.run(order_id=order.id)
+    result = process_order.apply(kwargs={"order_id": order.id}).get()
     assert result == "expected_output"
 ```
+
+Use `.apply()` (eager execution through the task pipeline), not `.run()`. `.apply()` goes through the full task machinery (serialization, signals, custom base-task setup) which mirrors production behavior and is required for tools that hook into those signals (e.g. nplusone detection via `task_prerun`).
 
 **Available fixtures** (from root `conftest.py`): `mock_base_task_delay`, `mock_base_task_apply_async`
 
@@ -46,12 +48,12 @@ def test_batch_add_items():
 
 ## Caveats
 
-**Avoid CELERY_TASK_ALWAYS_EAGER**: Has settings isolation issues and hides race conditions by running tasks synchronously. Use direct task calls or real worker instead.
+**Never set `CELERY_TASK_ALWAYS_EAGER`.** Settings-isolation issues, hides race conditions, and makes eager execution implicit (so a test that "happens to work" can silently rely on it). Make eager execution explicit per test by calling `.apply()`.
 
 ## Summary
 
 - **Mock `.delay()`** to test task triggering
-- **Call task directly** to test business logic
+- **Call `.apply()`** to test business logic (not `.run()`)
 - **Use `celery_worker`** only for testing Celery-specific behavior
 
 

@@ -94,6 +94,18 @@ for order in orders:
     active = [i for i in order.items.all() if i.is_active]  # Filter in Python
 ```
 
+When using `Prefetch()` with a *filtered* queryset, use `to_attr` to store the result in a separate attribute. Otherwise touching the default manager (`order.items.all()`) will trigger a new query because the prefetch was bound to the filtered set, not the unfiltered relation:
+
+```python
+orders = Order.objects.prefetch_related(
+    Prefetch('items', queryset=OrderItem.objects.filter(status='pending'), to_attr='pending_items'),
+)
+
+for order in orders:
+    order.pending_items   # list of pending items (no query)
+    order.items.all()     # would trigger a NEW query — not prefetched without to_attr!
+```
+
 ### Fill Missing Prefetches
 
 Use `prefetch_related_objects()` to add prefetches on already-fetched instances. Only fetches what's not already loaded:
@@ -130,7 +142,11 @@ Use `only()` when you need model methods, save capability, or related object tra
 
 ## Avoiding Duplicates When Filtering Across Relations
 
-Filtering across relationships (JOINs) can produce duplicate rows. Use `Exists()` with `OuterRef()` instead of `distinct()`:
+Filtering across relationships (JOINs) can produce duplicate rows. Pick the right tool for the case:
+
+### Parent filtered by child existence → `Exists()`
+
+For "parents that have at least one matching child," use `Exists()` with `OuterRef()`:
 
 ```python
 from django.db.models import Exists, OuterRef
@@ -146,7 +162,22 @@ Merchant.objects.filter(
 )
 ```
 
-**Why `Exists()`:** Stops at first match (fast), no duplicates, works on all databases, no ordering restrictions. `distinct()` is expensive for large fields; `distinct(*fields)` is PostgreSQL-only.
+**Why `Exists()`:** semi-join — short-circuits on first match, no duplicates to dedup, no ordering restrictions, portable across databases.
+
+### Greatest-N-per-group, or dedup on specific columns → `.distinct(*fields)`
+
+On PostgreSQL, `.distinct('field', ...)` maps to `SELECT DISTINCT ON` and is the cleanest option for "one row per X":
+
+```python
+# Latest edition of each book
+Book.objects.order_by("name", "-edition").distinct("name")
+```
+
+Constraints: the first `order_by` key(s) must match the `distinct` fields; Postgres-only.
+
+### Avoid bare `.distinct()`
+
+Bare `.distinct()` sorts and dedups across every selected column. Expensive on wide rows and almost always a sign the query should be restructured with `Exists()` or `.distinct(*fields)` instead.
 
 ## Subqueries for Execution Order
 

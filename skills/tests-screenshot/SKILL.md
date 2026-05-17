@@ -280,15 +280,39 @@ uv run pytest tests/widgets/ -m screenshot --update-screenshots
 4. Run with `--update-screenshots` to regenerate
 5. Commit baselines alongside code changes
 
-## Deterministic Captures
+## Determinism: Two Layers
 
-The fixture disables sources of non-determinism:
-- `animations="disabled"` on Playwright screenshot call
+Both the environment and the test data have to be pinned. They live in different places, and confusing them is the most common source of "flaky on CI" screenshot tests.
+
+**Conftest pins the environment** — applies to every test:
+
+- Freeze time (`time_machine.travel(FIXED_INSTANT, tick=False)`).
+- Seed RNGs: `random.seed(...)`, `factory.random.reseed_random(...)`, anything else volatile.
+- Pin volatile globals that appear in HTML — version strings, build hashes.
+- Fix the viewport via `browser_context_args` with explicit `viewport` and `device_scale_factor=1`.
+
+If a single test needs to reseed, unfreeze, or override viewport, fix the conftest instead — those overrides leak across tests and produce baselines that pass locally and fail on CI.
+
+**The test pins its own visible data:**
+
+- Stable strings on screen — names, emails, SKUs, labels. Pass them to factories explicitly (`UserFactory.create(email="user@example.com", ...)`). Auto-generated fakes are stable across runs but noisy in baselines and break when factory definitions change.
+- Explicit timestamp offsets — `created_at=timezone.now() - timedelta(hours=3)`. Frozen time pins `now()`; offsets are still up to the test.
+- Fixed counts and ordering. Create the rows you want in the order they should appear; don't rely on database ordering.
+- Permissions, groups, feature flags the page reads. A missing permission can hide a panel and silently shrink the screenshot.
+
+## Deterministic Captures (Mechanics)
+
+The fixture disables the per-capture sources of non-determinism:
+- `animations="disabled"` on the Playwright screenshot call
 - `caret="hide"` removes blinking cursor
 - CSS injection: `transition: none !important; animation: none !important;`
-- `time-machine` for time-dependent content (freeze time in the test)
+- `time-machine` integration for time-dependent content (freeze time in the test)
 
-Use `page.wait_for_timeout(150)` after interactions that trigger CSS transitions to ensure the final state is captured.
+Use `page.wait_for_timeout(150)` after interactions that trigger CSS transitions to ensure the final state is captured. Prefer waiting on observable state (`expect(...).to_be_visible()`) over a fixed sleep whenever there is one.
+
+## Tuning the Comparison: mask vs threshold
+
+When a region of the page is genuinely non-deterministic (third-party iframe, animated chart, anything you can't pin via the conftest), reach for `mask: list[Locator]` to black it out before comparing — not `threshold`. Raising `threshold` hides regressions across the *whole* page; a mask only blinds the comparison to a known region.
 
 ## Dependencies
 

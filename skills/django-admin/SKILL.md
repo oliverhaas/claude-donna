@@ -310,12 +310,22 @@ class OrderAdmin(admin.ModelAdmin):
 
 **`list_select_related`** — set to a list of FK field names for the list view only. Setting it to `True` does an unbounded `select_related()` — avoid that.
 
+**The default-`False` gotcha.** With `list_select_related = False` (the default), if *any* `ForeignKey` appears in `list_display` the admin's ChangeList still calls `qs.select_related()` with **no arguments** — which recursively follows every non-nullable FK up to `Query.max_depth = 5`. On wide schemas this produces huge JOINs. Always set `list_select_related` explicitly to the FKs you actually reference.
+
+Source: `django/contrib/admin/views/main.py::ChangeList.apply_select_related` and `django/db/models/sql/query.py::Query.max_depth`.
+
 **`show_full_result_count = False`** — disable the expensive `COUNT(*)` on the full unfiltered table when the list is filtered. Default is `True`.
 
 ```python
 class OrderAdmin(admin.ModelAdmin):
     show_full_result_count = False
 ```
+
+**Object-history view is not configurable.** `ModelAdmin.history_view` calls `.select_related()` on `LogEntry` with no arguments (`django/contrib/admin/options.py`). This isn't overridable per-ModelAdmin — just be aware when investigating an unexpectedly slow object-history page.
+
+**M2M and reverse relations in `list_display`** need `prefetch_related` via `get_queryset`; `list_select_related` cannot help.
+
+**Callables in `list_display`** that lazily fetch related objects are a classic per-row N+1 source. Add the necessary `select_related`/`prefetch_related` in `get_queryset`.
 
 ## Admin Site Customization
 
