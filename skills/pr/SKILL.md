@@ -36,6 +36,19 @@ git add .
 git commit -m "<type>: descriptive commit message"
 ```
 
+## Step 3.5: Pre-Push Hygiene
+Run the local checks that CI will run anyway. Cheaper to fix here than in a CI re-run:
+
+```bash
+uv run ruff format
+uv run ruff check
+uv run mypy .   # or `uv run ty check .` on non-Django projects
+git status      # confirm clean
+git branch --show-current  # confirm not on main
+```
+
+If anything fails, fix it before pushing. Don't push to "see what CI thinks" — that wastes a CI cycle and clutters the run history. Don't suppress lint/type errors to make CI green; fix the root cause.
+
 ## Step 4: Push & Create PR (as Draft)
 Push and create pull request as **draft** so the human can review before marking ready:
 

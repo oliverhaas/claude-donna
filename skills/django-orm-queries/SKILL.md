@@ -258,6 +258,14 @@ reset_queries()
 print(f"Queries: {len(connection.queries)}")
 ```
 
+## Don't Add Query-Count Tests
+
+`assertNumQueries(N)` / `django_assert_num_queries(N)` tests are brittle and high-noise: any unrelated refactor that touches the same code path bumps the count and forces an unrelated test update. The signal is also weak — "this code currently runs 5 queries" doesn't tell you whether 5 is correct.
+
+Use `django-nplus1` middleware + celery integration in test settings instead. It catches the actual bug (N+1) without pinning the count, attributes the violation to the entry point, and doesn't fire on factory/fixture setup. Remove whitelist entries as you fix them; never add new ones.
+
+The exception is a regression test for a specific known-bad pattern that the N+1 detector cannot catch — and even then, a comment explaining what you're guarding against is mandatory.
+
 ## Safe Concurrent Updates (Locking)
 
 `UPDATE` automatically acquires row-level locks. Use atomic conditional updates instead of explicit locking:

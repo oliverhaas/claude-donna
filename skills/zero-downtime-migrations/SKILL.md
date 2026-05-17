@@ -195,6 +195,22 @@ migrations.RemoveField(model_name="product", name="slug_old")
 
 Always use `CONCURRENTLY`. Django's `db_index=True` does not do this by default.
 
+### If the project uses django-pg-zero-downtime-migrations
+
+Don't hand-write `AddIndexConcurrently`. Just declare the index on the model and let `makemigrations` generate a plain `AddIndex`; the library rewrites it to `CONCURRENTLY` at SQL time. Hand-rolling the operation duplicates what the library does and ages badly when defaults change.
+
+```python
+# Preferred: let the library handle the concurrent rewrite
+class Meta:
+    indexes = [models.Index(fields=["created_at"])]
+```
+
+Only omit `name=` when Django can autogenerate one — for plain field-list `models.Index`, that's almost always. Reach for an explicit name only when Django can't derive one (functional indexes, partial indexes, very long auto-names).
+
+The hand-written `AddIndexConcurrently` examples below are for projects without the library.
+
+### Hand-written concurrent index (no pg-zero-downtime)
+
 ```python
 # Correct: concurrent index creation
 from django.db import migrations

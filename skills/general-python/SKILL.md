@@ -90,6 +90,25 @@ except AttributeError, TypeError:
 
 This is **valid Python 3.14+** and equivalent to `except (AttributeError, TypeError):`. It is NOT the Python 2 syntax (which meant `except AttributeError as TypeError`). Both forms are acceptable; prefer parenthesised when using `as`.
 
+## No `from __future__ import annotations`
+
+On Python 3.10+ projects (which is everything we work on), `from __future__ import annotations` is dead weight. PEP 604 (`str | None`) and PEP 585 (`list[int]`) work natively without postponed evaluation. Importing it adds noise and surprises readers who think it does something.
+
+If you see it in an existing file, leave it alone unless you're touching that file's imports for another reason — don't sweep just for this.
+
+## `@transaction.atomic` Decorator over Context Manager
+
+Default to the decorator form:
+
+```python
+# Preferred
+@transaction.atomic
+def transfer_funds(*, from_id: int, to_id: int, amount: Decimal) -> None:
+    ...
+```
+
+The context-manager form is for cases where the atomic block is genuinely a sub-section of a larger function (e.g. some setup logic that should not roll back, or a `savepoint=False` inner block). When the whole function should be atomic, the decorator is shorter and harder to get wrong.
+
 ## Module Naming
 
 Avoid dumping-ground module names like `utils.py`, `helpers.py`, `common.py`, `misc.py`, `tools.py`. They grow into unbounded grab-bags. Name modules by what lives inside them: `formatting.py`, `url_builders.py`, `retry.py`. See https://tonsky.me/blog/utils/.

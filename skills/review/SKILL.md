@@ -131,6 +131,21 @@ When code is removed or refactored in the diff, check if it leaves behind unused
 
 Present suggestions separately at the end of the review as "potential follow-ups".
 
+## Output Mode: Read-Only by Default
+
+**Render the review in chat. Do not post comments to GitHub unless the user explicitly says "post it" / "submit" / "publish".**
+
+`/review` is for the user to read and filter before any teammate sees a single line. The default mode is:
+
+- Print findings in chat with `file:line` references.
+- Group by pass and by severity (request changes vs suggestions).
+- Do not call `gh pr review`, `gh pr comment`, or any other write API.
+- Do not push fixes to the branch.
+
+If the user wants to post after reading, they will tell you. Treat "review this PR" as "produce a draft for me", never as "publish a review on my behalf".
+
+This applies whether the PR belongs to the user or a teammate. Even on your own PRs, the chat-first render gives the user a chance to drop noise before it lands.
+
 ## Notes
 
 - Focus on the diff, not unchanged code
