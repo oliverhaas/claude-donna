@@ -2,6 +2,8 @@
 name: django-management-commands
 description: Management command patterns for Django. Use when writing, reviewing, or testing custom management commands.
 user-invocable: false
+paths:
+  - "**/management/commands/**/*.py"
 ---
 
 # Django Management Commands

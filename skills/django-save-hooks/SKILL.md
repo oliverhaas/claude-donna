@@ -2,6 +2,9 @@
 name: django-save-hooks
 description: Model save hooks with dirty tracking and bulk operation support. Use when adding save/post_save logic, bulk_create/bulk_update, or change-tracking to Django models.
 user-invocable: false
+paths:
+  - "**/models.py"
+  - "**/models/**/*.py"
 ---
 
 # Model Save Hooks

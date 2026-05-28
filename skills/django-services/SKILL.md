@@ -2,6 +2,9 @@
 name: django-services
 description: Service layer guidelines: business logic organization, naming, error handling. Use when writing or reviewing service functions or moving logic out of views/models.
 user-invocable: false
+paths:
+  - "**/services.py"
+  - "**/services/**/*.py"
 ---
 
 # Django Services Guidelines

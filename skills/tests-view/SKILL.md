@@ -2,6 +2,8 @@
 name: tests-view
 description: View test guidelines: verify rendering, input handling, and expected behaviors. Use when writing tests for Django views or endpoints.
 user-invocable: false
+paths:
+  - "**/tests/**/*.py"
 ---
 # View Testing Guidelines
 

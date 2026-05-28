@@ -2,6 +2,8 @@
 name: tests-celery
 description: Guidelines for testing Celery tasks. Use when writing tests for async tasks.
 user-invocable: false
+paths:
+  - "**/tests/**/*.py"
 ---
 # Testing Celery Tasks
 

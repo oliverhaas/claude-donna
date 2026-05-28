@@ -2,6 +2,10 @@
 name: django-jinja2
 description: Jinja2 authoring patterns for Django. Use when writing new Jinja2 templates, configuring the Jinja2 environment, adding custom filters/globals, or deciding between Jinja2 and DTL.
 user-invocable: false
+paths:
+  - "**/jinja2/**/*.html"
+  - "**/*.jinja"
+  - "**/*.j2"
 ---
 
 # Django Jinja2

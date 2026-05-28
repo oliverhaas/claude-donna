@@ -2,6 +2,8 @@
 name: zero-downtime-migrations
 description: Schema migration strategies for zero-downtime deploys on PostgreSQL. Use when adding/removing columns, indexes, constraints, or foreign keys that must not lock production tables.
 user-invocable: false
+paths:
+  - "**/migrations/**/*.py"
 ---
 
 # Zero-Downtime Migrations

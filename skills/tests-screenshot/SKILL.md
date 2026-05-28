@@ -2,6 +2,8 @@
 name: tests-screenshot
 description: Visual regression testing with Playwright screenshots. Use when adding screenshot tests, updating baselines, setting up the assert_screenshot fixture, or configuring the CI visual workflow.
 user-invocable: false
+paths:
+  - "**/tests/screenshots/**/*.py"
 ---
 
 # Screenshot / Visual Regression Tests

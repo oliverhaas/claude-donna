@@ -2,6 +2,8 @@
 name: django-templates
 description: Django template patterns for inheritance, includes, partials (Django 6.0), custom tags/filters, fragment caching, context processors, and HTMX partials. Use when writing or reviewing Django templates or template infrastructure.
 user-invocable: false
+paths:
+  - "**/templates/**/*.html"
 ---
 
 # Django Templates

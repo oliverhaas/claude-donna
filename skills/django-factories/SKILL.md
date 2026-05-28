@@ -2,6 +2,8 @@
 name: django-factories
 description: factory_boy patterns for test data. Use when writing, reviewing, or modifying factories.
 user-invocable: false
+paths:
+  - "**/factories.py"
 ---
 # Factory Guidelines
 

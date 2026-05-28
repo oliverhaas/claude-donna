@@ -2,6 +2,9 @@
 name: django-admin
 description: Django admin patterns for ModelAdmin, inlines, custom actions, custom views, permissions, and performance. Use when writing or customizing Django admin classes.
 user-invocable: false
+paths:
+  - "**/admin.py"
+  - "**/admin/**/*.py"
 ---
 
 # Django Admin Patterns

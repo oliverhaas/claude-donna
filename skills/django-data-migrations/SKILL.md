@@ -2,6 +2,8 @@
 name: django-data-migrations
 description: Detecting when data migrations are needed for model and business logic changes. Use when changing model fields, defaults, or constraints that affect existing data.
 user-invocable: false
+paths:
+  - "**/migrations/**/*.py"
 ---
 
 # Data Migrations Review Guide

@@ -2,6 +2,8 @@
 name: tests-general
 description: Testing conventions, fixtures, and unit test guidelines. Use when writing, reviewing, or fixing any tests.
 user-invocable: false
+paths:
+  - "**/tests/**/*.py"
 ---
 
 # Testing Guidelines

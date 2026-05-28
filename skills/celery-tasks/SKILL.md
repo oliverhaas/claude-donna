@@ -2,6 +2,8 @@
 name: celery-tasks
 description: Guidelines for implementing Celery tasks. Use when writing or reviewing async task code.
 user-invocable: false
+paths:
+  - "**/tasks/**/*.py"
 ---
 
 # Celery Tasks Guidelines

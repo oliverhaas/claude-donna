@@ -2,6 +2,11 @@
 name: django-orm-queries
 description: Guidelines for writing efficient Django ORM queries. Use when writing, reviewing, or optimizing querysets, annotations, or database access patterns.
 user-invocable: false
+paths:
+  - "**/views.py"
+  - "**/views/**/*.py"
+  - "**/tasks.py"
+  - "**/tasks/**/*.py"
 ---
 
 # Django ORM Queries

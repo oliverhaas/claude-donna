@@ -2,6 +2,12 @@
 name: django-validation
 description: Django multi-layer validation strategy and Pydantic API patterns. Use when adding validation to models, forms, or APIs.
 user-invocable: false
+paths:
+  - "**/schemas.py"
+  - "**/schemas/**/*.py"
+  - "**/api.py"
+  - "**/forms.py"
+  - "**/forms/**/*.py"
 ---
 
 # Data Validation Layers

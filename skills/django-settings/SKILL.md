@@ -2,6 +2,9 @@
 name: django-settings
 description: App settings patterns, environment config, and secrets management. Use when adding configurable settings to a reusable app, structuring project settings, or managing secrets.
 user-invocable: false
+paths:
+  - "**/settings.py"
+  - "**/settings/**/*.py"
 ---
 
 # Django Settings Guidelines

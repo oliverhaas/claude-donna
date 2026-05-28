@@ -2,6 +2,8 @@
 name: tests-playwright-e2e
 description: End-to-end testing with pytest-playwright and live_server fixture. Use when writing browser-based E2E or integration tests.
 user-invocable: false
+paths:
+  - "**/tests/**/*.py"
 ---
 # Playwright E2E Testing Guidelines
 

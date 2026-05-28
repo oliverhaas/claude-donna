@@ -2,6 +2,9 @@
 name: django-views
 description: Encode shareable view state (filters, search, sort) in URL query parameters. Use when adding filtering, searching, sorting, or pagination to views.
 user-invocable: false
+paths:
+  - "**/views.py"
+  - "**/views/**/*.py"
 ---
 
 # View State in URL Query Parameters

@@ -2,6 +2,9 @@
 name: api-clients
 description: Guidelines for implementing API clients. Use when writing or reviewing code that calls external APIs.
 user-invocable: false
+paths:
+  - "**/clients.py"
+  - "**/clients/**/*.py"
 ---
 
 # API Client Implementation Guidelines

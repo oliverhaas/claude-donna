@@ -2,6 +2,9 @@
 name: django-middleware
 description: Django middleware structure, async patterns, ordering, and testing. Use when writing custom middleware, debugging request/response lifecycle issues, or reviewing middleware stack ordering.
 user-invocable: false
+paths:
+  - "**/middleware.py"
+  - "**/middleware/**/*.py"
 ---
 
 # Django Middleware

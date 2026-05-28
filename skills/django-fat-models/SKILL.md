@@ -2,6 +2,9 @@
 name: django-fat-models
 description: Fat model pattern with custom querysets. Use when business logic is entity-centric and doesn't cross model boundaries.
 user-invocable: false
+paths:
+  - "**/models.py"
+  - "**/models/**/*.py"
 ---
 
 # Fat Models Pattern
