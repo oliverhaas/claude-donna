@@ -1,6 +1,6 @@
 ---
 name: package-init
-description: "Scaffold a new Python package with our standard tooling: hatchling, ruff, ty/mypy, pytest, GitHub Actions CI/CD, mkdocs, pre-commit."
+description: "Scaffold a new Python package with our standard tooling: hatchling, ruff, ty/mypy, pytest, GitHub Actions CI/CD, pre-commit, and an optional mkdocs docs site."
 user-invocable: true
 argument-hint: "<package-name> [description]"
 ---
@@ -18,9 +18,10 @@ Parse `$ARGUMENTS` for:
 
 Ask the user:
 - Is this a Django package? (affects dependencies, classifiers, test settings)
-- Initial Python version support? (default: `>=3.12`)
-- Initial Django version support? (default: `>=5.2,<7` if Django package)
-- Native extension? (Cython, PyO3/Rust, or none) — if yes, see "Native Extensions" at the bottom for overrides on top of the standard scaffold
+- Initial Python version support? (default: `>=3.14`)
+- Initial Django version support? (default: `>=6.0,<7` if Django package)
+- Documentation site? (mkdocs + mike, default: no; see "Documentation" at the bottom to add it)
+- Native extension? (Cython, PyO3/Rust, or none). If yes, see "Native Extensions" at the bottom for overrides on top of the standard scaffold
 
 ## Step 2: Create GitHub Repository
 
@@ -47,28 +48,22 @@ The default branch must be `main` (not `master`). If `gh repo create` initialize
 │       ├── __init__.py
 │       ├── base.py
 │       └── urls.py
-├── docs/
-│   ├── index.md
-│   ├── getting-started/
-│   │   └── installation.md
-│   └── reference/
-│       └── changelog.md
 ├── .github/
 │   ├── dependabot.yml
 │   └── workflows/
-│       ├── ci.yml
-│       ├── publish.yml
-│       ├── tag.yml
-│       ├── docs.yml
+│       ├── ci.yml                       # active
+│       ├── publish.yml                  # ships commented out (see "Enabling Releases")
+│       ├── tag.yml                      # ships commented out (see "Enabling Releases")
 │       └── dependabot-automerge.yml
 ├── .gitignore
 ├── .python-version
 ├── .pre-commit-config.yaml
 ├── pyproject.toml
-├── mkdocs.yml
 ├── LICENSE
 └── README.md
 ```
+
+Docs (`mkdocs.yml`, `docs/`, `docs.yml`) are **not** scaffolded by default. Add them only if the user opts into a documentation site (see "Documentation" below).
 
 ## Step 4: pyproject.toml
 
@@ -79,7 +74,7 @@ version = "0.1.0a1"
 description = "{description}"
 readme = "README.md"
 license = { text = "MIT" }
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 keywords = []
 authors = [{ name = "Oliver Haas", email = "ohaas@e1plus.de" }]
 classifiers = [
@@ -90,33 +85,37 @@ classifiers = [
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
   "Typing :: Typed",
-  # Add "Framework :: Django" classifiers if Django package
+  # Django package, also add:
+  #   "Environment :: Web Environment",
+  #   "Framework :: Django",
+  #   "Framework :: Django :: 6.0",
+  # Free-threaded target, also add:
+  #   "Programming Language :: Python :: Free Threading :: 1 - Unstable",
 ]
 dependencies = [
-  # Add "Django>=5.2,<7" if Django package
+  # Add "Django>=6,<7" if Django package
 ]
 
 [project.urls]
 Homepage = "https://github.com/oliverhaas/{package-name}"
-Documentation = "https://oliverhaas.github.io/{package-name}/"
 Repository = "https://github.com/oliverhaas/{package-name}.git"
-Changelog = "https://oliverhaas.github.io/{package-name}/reference/changelog/"
+# Add Documentation + Changelog URLs if you enable a docs site (see "Documentation")
 
 [dependency-groups]
 dev = [
-  "pre-commit==4.5.1",
-  "pytest==9.0.2",
+  "pre-commit==4.6.0",
+  "pytest==9.0.3",
+  "pytest-asyncio==1.3.0",
   "pytest-cov==7.1.0",
   "pytest-xdist==3.8.0",
-  "ruff==0.15.8",
-  # Non-Django: "ty==0.0.24"
-  # Django: "mypy==1.19.1", "django-stubs==6.0.1", "pytest-django==4.12.0"
+  "ruff==0.15.14",
+  # Non-Django: "ty==0.0.39"
+  # Django: "mypy==2.1.0", "django-stubs==6.0.4", "pytest-django==4.12.0"
 ]
-docs = ["mkdocs==1.6.1", "mkdocs-material==9.7.6", "mike==2.1.4"]
+# Docs group, add only if you enable a docs site (see "Documentation"):
+# docs = ["mkdocs==1.6.1", "mkdocs-material==9.7.6", "mike==2.2.0"]
 
 [build-system]
 requires = ["hatchling"]
@@ -129,7 +128,7 @@ packages = ["{module_name}"]
 include = ["{module_name}", "LICENSE", "README.md"]
 
 [tool.ruff]
-target-version = "py313"
+target-version = "py314"
 line-length = 120
 fix = true
 
@@ -153,16 +152,16 @@ ignore = [
 
 # Non-Django packages: use ty
 [tool.ty.environment]
-python-version = "3.13"
+python-version = "3.14"
 
 [[tool.ty.overrides]]
 include = ["tests/**"]
 [tool.ty.overrides.rules]
 unresolved-attribute = "ignore"
 
-# Django packages: use mypy instead of ty
+# Django packages: use mypy instead of ty (in practice Django packages may run both)
 # [tool.mypy]
-# python_version = "3.12"
+# python_version = "3.14"
 # plugins = ["mypy_django_plugin.main"]
 # pretty = true
 # show_error_codes = true
@@ -198,7 +197,7 @@ default_install_hook_types:
 fail_fast: false
 
 default_language_version:
-  python: python3.13
+  python: python3.14
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -299,7 +298,7 @@ jobs:
       - run: uv run ruff format --check
       # Non-Django:
       - run: uv run ty check {module_name}/
-      # Django:
+      # Django (in practice may run both mypy and ty):
       # - run: uv run mypy {module_name}/
 
   test:
@@ -307,22 +306,30 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.12", "3.13", "3.14"]
+        python-version: ["3.14", "3.14t"]   # 3.14t = free-threaded build
+        # Django package: add a Django dimension, e.g.
+        #   include:
+        #     - { python-version: "3.14",  django-version: "6.0" }
+        #     - { python-version: "3.14t", django-version: "6.0" }
     steps:
       - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
-      - run: uv python install ${{{{ matrix.python-version }}}}
+      - run: uv python install ${{ matrix.python-version }}
       - run: uv sync --group dev
       - run: uv run pytest -n auto
-      - name: Upload coverage
-        if: matrix.python-version == '3.13'
-        uses: codecov/codecov-action@v5
-        with:
-          files: ./coverage.xml
-          fail_ci_if_error: false
+      # Optional: upload coverage to Codecov. The pure references omit this;
+      # django-cachex uses codecov/codecov-action@v6 gated to a single leg:
+      # - name: Upload coverage
+      #   if: matrix.python-version == '3.14'
+      #   uses: codecov/codecov-action@v6
+      #   with:
+      #     files: ./coverage.xml
+      #     fail_ci_if_error: false
 ```
 
 ### .github/workflows/publish.yml
+
+**Commit this file with every line commented out** (prefix each line with `# `). It stays dormant until you enable releases (see [Enabling Releases](#enabling-releases)). The YAML below is the *enabled* form.
 
 ```yaml
 name: Publish to PyPI
@@ -342,9 +349,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{{{ github.event.inputs.version && format('v{{0}}', github.event.inputs.version) || github.ref }}}}
+          ref: ${{ github.event.inputs.version && format('v{0}', github.event.inputs.version) || github.ref }}
       - uses: astral-sh/setup-uv@v7
-      - run: uv python install 3.12
+      - run: uv python install 3.14
       - run: uv sync --group dev
       - run: uv run ruff check
       - run: uv run ruff format --check
@@ -361,113 +368,106 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{{{ github.event.inputs.version && format('v{{0}}', github.event.inputs.version) || github.ref }}}}
+          ref: ${{ github.event.inputs.version && format('v{0}', github.event.inputs.version) || github.ref }}
       - uses: astral-sh/setup-uv@v7
-      - run: uv python install 3.12
+      - run: uv python install 3.14
       - run: uv build
       - uses: pypa/gh-action-pypi-publish@release/v1
 ```
 
 ### .github/workflows/tag.yml
 
-```yaml
-name: Tag
+**Commit this file with every line commented out** too. It drives the auto-release and must stay dormant until you enable releases (see [Enabling Releases](#enabling-releases)). The YAML below is the *enabled* form.
 
-on:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
-    branches: [main]
-
-jobs:
-  tag:
-    if: >
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      actions: write
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 2
-      - name: Check version
-        id: version
-        run: |
-          CURRENT_VERSION=$(grep -m1 'version = ' pyproject.toml | cut -d'"' -f2)
-          echo "current=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-          if curl -s "https://pypi.org/pypi/{package-name}/$CURRENT_VERSION/json" | grep -q '"version"'; then
-            echo "on_pypi=true" >> $GITHUB_OUTPUT
-          else
-            echo "on_pypi=false" >> $GITHUB_OUTPUT
-          fi
-          git fetch --tags
-          if git rev-parse "v$CURRENT_VERSION" >/dev/null 2>&1; then
-            echo "tag_exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "tag_exists=false" >> $GITHUB_OUTPUT
-          fi
-      - name: Create and push tag
-        if: steps.version.outputs.on_pypi == 'false' && steps.version.outputs.tag_exists == 'false'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag "v${{ steps.version.outputs.current }}"
-          git push origin "v${{ steps.version.outputs.current }}"
-      - name: Trigger publish
-        if: steps.version.outputs.on_pypi == 'false'
-        run: gh workflow run publish.yml -f version=${{ steps.version.outputs.current }} -R ${{ github.repository }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-      - name: Trigger docs
-        if: steps.version.outputs.on_pypi == 'false' && steps.version.outputs.tag_exists == 'false'
-        run: gh workflow run docs.yml --ref "v${{ steps.version.outputs.current }}" -R ${{ github.repository }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-```
-
-### .github/workflows/docs.yml
+On a push to `main` it reads the version from `pyproject.toml`, and if that version is neither on PyPI nor already tagged, it runs the test gate, creates and pushes `v<version>`, then dispatches `publish.yml`. An existing tag is a hard stop: a broken tag must be deleted manually before re-releasing (this is what prevents the pipeline from re-publishing the same broken commit in a loop).
 
 ```yaml
-name: Docs
+name: Tag and Publish
 
 on:
   push:
     branches: [main]
-    tags: ["v*"]
-  workflow_dispatch:
-
-permissions:
-  contents: write
-  pages: write
-  id-token: write
 
 jobs:
-  deploy:
+  check-version:
     runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.version.outputs.should_release }}
+      version: ${{ steps.version.outputs.current }}
     steps:
       - uses: actions/checkout@v6
         with:
-          fetch-depth: 0
-      - run: |
-          git config user.name github-actions[bot]
-          git config user.email github-actions[bot]@users.noreply.github.com
-      - uses: astral-sh/setup-uv@v7
-        with:
-          enable-cache: true
-          cache-dependency-glob: "pyproject.toml"
-      - run: uv python install 3.12
-      - run: uv sync --group docs
-      - name: Deploy docs (version tag)
-        if: startsWith(github.ref, 'refs/tags/v')
+          fetch-depth: 2
+
+      - name: Check version status
+        id: version
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          uv run mike deploy --push --update-aliases $VERSION latest
-          uv run mike set-default --push latest
-      - name: Deploy docs (main branch)
-        if: github.ref == 'refs/heads/main'
-        run: uv run mike deploy --push main
+          CURRENT_VERSION=$(grep -m1 'version = ' pyproject.toml | cut -d'"' -f2)
+          echo "current=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+          if curl -s "https://pypi.org/pypi/{package-name}/$CURRENT_VERSION/json" | grep -q '"version"'; then
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "Version $CURRENT_VERSION already on PyPI, nothing to do"
+            exit 0
+          fi
+
+          # Tag-exists is treated as "do nothing"; a broken tag must be deleted
+          # manually before a re-release. Auto-retrying on an existing tag is how
+          # we got stuck publishing the same broken commit repeatedly.
+          git fetch --tags
+          if git rev-parse "v$CURRENT_VERSION" >/dev/null 2>&1; then
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "Tag v$CURRENT_VERSION already exists, delete it manually to re-release"
+            exit 0
+          fi
+
+          echo "should_release=true" >> $GITHUB_OUTPUT
+          echo "Will release v$CURRENT_VERSION after tests pass"
+
+  test:
+    needs: check-version
+    if: needs.check-version.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
+      - run: uv python install 3.14
+      - run: uv sync --group dev
+      - run: uv run ruff check
+      - run: uv run ruff format --check
+      # Non-Django:
+      - run: uv run ty check {module_name}/
+      # Django:
+      # - run: uv run mypy {module_name}/
+      - run: uv run pytest -n auto
+
+  tag-and-trigger:
+    needs: [check-version, test]
+    if: needs.check-version.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+    env:
+      VERSION: ${{ needs.check-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "v$VERSION"
+          git push origin "v$VERSION"
+
+      # GITHUB_TOKEN-pushed tags don't trigger downstream workflows, so explicit
+      # dispatch is required.
+      - name: Trigger publish workflow
+        run: gh workflow run publish.yml -f version=$VERSION -R ${{ github.repository }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      # If you enable a docs site, dispatch docs.yml here too. See "Documentation".
 ```
 
 ### .github/workflows/dependabot-automerge.yml
@@ -515,59 +515,7 @@ updates:
         patterns: ["*"]
 ```
 
-## Step 7: mkdocs.yml
-
-```yaml
-site_name: {Package Name}
-site_description: {description}
-site_url: https://oliverhaas.github.io/{package-name}/
-repo_url: https://github.com/oliverhaas/{package-name}
-repo_name: oliverhaas/{package-name}
-edit_uri: edit/main/docs/
-
-theme:
-  name: material
-  palette:
-    - media: "(prefers-color-scheme: light)"
-      scheme: default
-      toggle:
-        icon: material/brightness-7
-        name: Switch to dark mode
-    - media: "(prefers-color-scheme: dark)"
-      scheme: slate
-      toggle:
-        icon: material/brightness-4
-        name: Switch to light mode
-  features:
-    - navigation.instant
-    - navigation.instant.progress
-    - navigation.tracking
-    - navigation.sections
-    - content.code.copy
-
-markdown_extensions:
-  - pymdownx.highlight:
-      anchor_linenums: true
-  - pymdownx.inlinehilite
-  - pymdownx.superfences
-  - admonition
-  - pymdownx.details
-  - toc:
-      permalink: true
-
-extra:
-  version:
-    provider: mike
-
-nav:
-  - Home: index.md
-  - Getting Started:
-      - Installation: getting-started/installation.md
-  - Reference:
-      - Changelog: reference/changelog.md
-```
-
-## Step 8: Other Files
+## Step 7: Other Files
 
 ### .gitignore
 
@@ -627,42 +575,12 @@ Empty file (PEP 561 marker).
 pip install {package-name}
 ```
 
-## Documentation
-
-Full documentation at [oliverhaas.github.io/{package-name}](https://oliverhaas.github.io/{package-name}/)
-
 ## License
 
 MIT
 ```
 
-### docs/index.md
-
-```markdown
-# {Package Name}
-
-{description}
-```
-
-### docs/getting-started/installation.md
-
-```markdown
-# Installation
-
-```console
-pip install {package-name}
-```
-```
-
-### docs/reference/changelog.md
-
-```markdown
-# Changelog
-
-## 0.1.0a1 (Unreleased)
-
-Initial release.
-```
+If you enable a docs site, add a `## Documentation` section (see "Documentation").
 
 ### tests/conftest.py (Django package)
 
@@ -690,14 +608,14 @@ DATABASES = {
 USE_TZ = True
 ```
 
-## Step 9: Initialize
+## Step 8: Initialize
 
 ```bash
 # Initialize git if not already
 git init
 
 # Install dependencies
-uv sync --group dev --group docs
+uv sync --group dev
 
 # Install pre-commit hooks
 uv run pre-commit install --install-hooks
@@ -710,20 +628,207 @@ git remote add origin git@github.com:oliverhaas/{package-name}.git
 git push -u origin main
 ```
 
-## Step 10: Post-Setup (Manual)
+## Step 9: Post-Setup (Manual)
 
 Tell the user these need to be done manually:
 
-1. **PyPI Trusted Publisher** - https://pypi.org/manage/account/publishing/
+1. **PyPI Trusted Publisher** - https://pypi.org/manage/account/publishing/ (set this up before enabling releases)
    - Owner: `oliverhaas`, Repository: `{package-name}`, Workflow: `publish.yml`, Environment: `pypi`
 
-2. **GitHub Pages** - https://github.com/oliverhaas/{package-name}/settings/pages
-   - Source: Deploy from a branch, Branch: `gh-pages` / `/ (root)`
-
-3. **GitHub Environment** - https://github.com/oliverhaas/{package-name}/settings/environments/new
+2. **GitHub Environment** - https://github.com/oliverhaas/{package-name}/settings/environments/new
    - Create environment named `pypi`
 
-4. **Codecov** - https://codecov.io/gh/oliverhaas/{package-name}
+3. **Codecov (optional)** - https://codecov.io/gh/oliverhaas/{package-name} (only if you enable the optional Codecov upload in `ci.yml`)
+
+## Enabling Releases
+
+The release pipeline ships **dormant**: `publish.yml` and `tag.yml` are committed with every line commented out, so a fresh package never auto-tags or publishes while you iterate on `0.1.0aX`.
+
+When you're ready for the first release:
+
+1. Set up the PyPI Trusted Publisher and the `pypi` GitHub environment (Post-Setup steps 1-2).
+2. Uncomment `publish.yml` and `tag.yml`, then commit.
+3. Bump the version in `pyproject.toml` and push to `main`. `tag.yml` checks whether the version is already on PyPI or already tagged; if not, it runs the test gate, creates and pushes `v<version>`, and dispatches `publish.yml`.
+
+A broken tag must be deleted manually before re-releasing. The pipeline will not re-tag or re-publish an existing tag.
+
+## Documentation (optional)
+
+The standard scaffold ships no docs. To add a versioned [mkdocs Material](https://squidfunk.github.io/mkdocs-material/) site deployed with [mike](https://github.com/jimporter/mike):
+
+1. Add the `docs` dependency-group to `pyproject.toml`:
+   ```toml
+   docs = ["mkdocs==1.6.1", "mkdocs-material==9.7.6", "mike==2.2.0"]
+   ```
+2. Add the docs URLs to `[project.urls]`:
+   ```toml
+   Documentation = "https://oliverhaas.github.io/{package-name}/"
+   Changelog = "https://oliverhaas.github.io/{package-name}/reference/changelog/"
+   ```
+3. Add a Documentation section to `README.md`:
+   ```markdown
+   ## Documentation
+
+   Full documentation at [oliverhaas.github.io/{package-name}](https://oliverhaas.github.io/{package-name}/)
+   ```
+4. Create `mkdocs.yml`, the `docs/` tree, and `.github/workflows/docs.yml` (below).
+5. In `tag.yml`'s `tag-and-trigger` job, add the docs dispatch step after the publish dispatch:
+   ```yaml
+   - name: Trigger docs workflow for new tag
+     run: gh workflow run docs.yml --ref "v$VERSION" -R ${{ github.repository }}
+     env:
+       GH_TOKEN: ${{ github.token }}
+   ```
+6. Install the group: `uv sync --group dev --group docs`.
+7. **GitHub Pages** - https://github.com/oliverhaas/{package-name}/settings/pages
+   - Source: Deploy from a branch, Branch: `gh-pages` / `/ (root)`
+
+### mkdocs.yml
+
+```yaml
+site_name: {Package Name}
+site_description: {description}
+site_url: https://oliverhaas.github.io/{package-name}/
+repo_url: https://github.com/oliverhaas/{package-name}
+repo_name: oliverhaas/{package-name}
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      # primary/accent: pick a per-project color
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+    - content.code.annotate
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+extra:
+  version:
+    provider: mike
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+  - Reference:
+      - Changelog: reference/changelog.md
+```
+
+### docs/ tree
+
+```
+docs/
+├── index.md
+├── getting-started/
+│   └── installation.md
+└── reference/
+    └── changelog.md
+```
+
+`getting-started/quickstart.md` and a hand-written `reference/api.md` are the usual next files as the package grows.
+
+#### docs/index.md
+
+```markdown
+# {Package Name}
+
+{description}
+```
+
+#### docs/getting-started/installation.md
+
+```markdown
+# Installation
+
+```console
+pip install {package-name}
+```
+```
+
+#### docs/reference/changelog.md
+
+```markdown
+# Changelog
+
+## 0.1.0a1 (Unreleased)
+
+Initial release.
+```
+
+### .github/workflows/docs.yml
+
+The `concurrency` block serializes deploys: a release bump fires both the `main`-push run and the dispatched `v*`-tag run, and both push `gh-pages`. Without serialization one fails with "fetch first".
+
+```yaml
+name: Docs
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: docs-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - run: |
+          git config user.name github-actions[bot]
+          git config user.email github-actions[bot]@users.noreply.github.com
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+      - run: uv python install 3.14
+      - run: uv sync --group docs
+      - name: Deploy docs (version tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          uv run mike deploy --push --update-aliases $VERSION latest
+          uv run mike set-default --push latest
+      - name: Deploy docs (main branch)
+        if: github.ref == 'refs/heads/main'
+        run: uv run mike deploy --push main
+```
 
 ## Native Extensions (optional)
 
